@@ -1,0 +1,4 @@
+PORT=4000
+KEY_LOCATION=your key location (can use the certs folder)
+CERT_LOCATION=your cert location (can use the certs folder)
+MONGO_URI=
