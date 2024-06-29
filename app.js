@@ -52,6 +52,7 @@ app.post("/product/read", productController.product_read);
 app.post("/product/update", productController.product_update);
 app.post("/product/delete", productController.product_delete);
 app.post("/product/list", productController.product_list_get);
+app.post("/product/create/list", productController.product_create_list);
 
 app.post("/debt/list/get", transactionController.debt_list);
 app.post("/debt/create", transactionController.debt_create);

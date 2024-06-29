@@ -10,8 +10,11 @@ const ProductSchema = new Schema(
     stock: Number,
     base64: String,
     state: String,
+    maxDiscount: Number,
   },
   { timestamps: true }
 );
+// ProductSchema.index({ name: "text" });
 const Product = mongoose.model("product", ProductSchema, "product");
+// Product.createIndexes();
 module.exports = Product;

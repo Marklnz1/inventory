@@ -5,6 +5,7 @@ const SaleSchema = new Schema(
   {
     movement: { type: mongoose.Schema.Types.ObjectId, ref: "movement" },
     invoice: { type: mongoose.Schema.Types.ObjectId, ref: "invoice" },
+    discount: Number,
     state: String,
   },
   { timestamps: true }

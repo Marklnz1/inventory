@@ -20,7 +20,7 @@ module.exports.movement_list_create = async (req, res, next) => {
     }
     for (let doc of req.body["docs"]) {
       doc.code = code++;
-      doc.status = "active";
+      doc.state = "active";
     }
     await Movement.insertMany(req.body["docs"]);
     const bulkOps = req.body["docs"].map((movement) => ({
@@ -40,7 +40,7 @@ module.exports.movement_list_create = async (req, res, next) => {
 module.exports.movement_list_get = async (req, res, next) => {
   try {
     let data = req.body;
-    let limit = Math.abs(data.limit) || 8;
+    let limit = Math.abs(data.limit) || 20;
     let page = fixedPage(data.page);
     let matchData = {
       state: { $ne: "removed" },

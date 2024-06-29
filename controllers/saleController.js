@@ -9,10 +9,14 @@ const util = require("util");
 const RENIEC = process.env.RENIEC;
 module.exports.sale_create_list = async (req, res, next) => {
   try {
-    if (req.body["docs"].length == 0) {
+    let salesData = req.body["docs"];
+    if (salesData.length == 0) {
       res.status(400).json({ error: "lista vacia" });
-
       return;
+    }
+    let movementsData = [];
+    for (let sd of salesData) {
+      movementsData.push(sd["movement"]);
     }
     let lastDoc = await Movement.find({}, { code: 1 })
       .sort({ code: -1 })
@@ -21,11 +25,21 @@ module.exports.sale_create_list = async (req, res, next) => {
     if (lastDoc.length != 0) {
       code = lastDoc[0].code + 1;
     }
-    for (let doc of req.body["docs"]) {
+    for (let doc of movementsData) {
       doc.code = code++;
-      doc.status = "active";
+      doc.state = "active";
     }
-    let movements = await Movement.insertMany(req.body["docs"]);
+
+    let productsIds = [];
+    for (let movement of movementsData) {
+      productsIds.push(movement.product);
+    }
+
+    let products = await Product.find({ _id: { $in: productsIds } });
+    for (let i = 0; i < products.length; i++) {
+      movementsData[i].price = products[i].price;
+    }
+    let movements = await Movement.insertMany(movementsData);
     lastDoc = await Invoice.find({}, { code: 1 }).sort({ code: -1 }).limit(1);
     code = 1;
     if (lastDoc.length != 0) {
@@ -42,9 +56,15 @@ module.exports.sale_create_list = async (req, res, next) => {
         state: "active",
       });
     }
+    let total = 0;
+    for (let i = 0; i < movements.length; i++) {
+      total +=
+        Math.abs(movements[i].quantity) *
+        (movements[i].price - products[i].maxDiscount);
+    }
     const invoice = await Invoice.create({
       code,
-      total: req.body["total"],
+      total: total,
       paid: paid,
       client: req.body["clientId"],
       state: "active",
@@ -56,9 +76,10 @@ module.exports.sale_create_list = async (req, res, next) => {
     await Payment.insertMany(payments);
 
     let sales = [];
-    for (let movement of movements) {
+    for (let i = 0; i < movements.length; i++) {
       sales.push({
-        movement: movement._id,
+        discount: products[i].maxDiscount,
+        movement: movements[i]._id,
         invoice: invoice._id,
         state: "active",
       });
@@ -132,7 +153,7 @@ module.exports.sale_list_get = async (req, res, next) => {
       state: { $ne: "removed" },
       // "client.state": { $ne: "removed" },
     };
-    console.log(util.inspect(data));
+    // console.log(util.inspect(data));
     if (data.invoiceIdFilter != null) {
       matchData["invoice._id"] = mongoose.Types.ObjectId.createFromHexString(
         data.invoiceIdFilter

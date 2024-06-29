@@ -6,6 +6,7 @@ const MovementSchema = new Schema(
     product: { type: mongoose.Schema.Types.ObjectId, ref: "product" },
     code: Number,
     quantity: Number,
+    price: Number,
     state: String,
   },
   { timestamps: true }
