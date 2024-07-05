@@ -1,5 +1,7 @@
 const DebtSchema = require("../models/Debt");
 const Payment = require("../models/Payment");
+const InvoicePayment = require("../models/InvoicePayment");
+
 const ClientSchema = require("../models/Client");
 const Invoice = require("../models/Invoice");
 
@@ -11,7 +13,8 @@ module.exports.payment_create = async (req, res, next) => {
     const invoice = await Invoice.findById(req.body["invoice"]);
     invoice.paid += req.body["amount"];
     await invoice.save();
-    await Payment.create(req.body);
+    const payment = await Payment.create(req.body);
+    await InvoicePayment.create({invoice:req.body["invoice"],payment:payment._id});
     res.status(200).json({});
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -174,11 +177,35 @@ module.exports.payment_list_get = async (req, res, next) => {
     if (data.dniFilter != null) {
       matchData["invoice.client.dni"] = data.dniFilter;
     }
-    const results = await Payment.aggregate([
+    const results = await InvoicePayment.aggregate([
       ...fieldIdToObject("invoice", "invoice"),
       ...fieldIdToObject("invoice.client", "client"),
       {
         $match: matchData,
+      },
+      // ...fieldIdToObject("payment", "payment"),
+
+      // {
+      //   $facet: {
+      //     paginatedResults: [
+      //       { $sort: { createdAt: -1 } },
+      //       { $skip: limit * page },
+      //       { $limit: limit },
+      //     ],
+      //     totalCount: [{ $count: "total" }],
+      //   },
+      // },
+      {
+        $lookup: {
+          from: "payment",
+          localField: "payment",
+          foreignField: "_id",
+          as: "paymentInfo"
+        }
+      },
+      { $unwind: "$paymentInfo" },
+      {
+        $replaceRoot: { newRoot: "$paymentInfo" }
       },
       {
         $facet: {
@@ -191,6 +218,7 @@ module.exports.payment_list_get = async (req, res, next) => {
         },
       },
     ]);
+    console.log(util.inspect(results,true,90));
     let numDocs = results[0].totalCount[0] ? results[0].totalCount[0].total : 0;
     let docs = results[0].paginatedResults;
     let numPages = Math.ceil(numDocs / limit);

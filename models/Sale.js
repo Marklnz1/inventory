@@ -7,6 +7,7 @@ const SaleSchema = new Schema(
     invoice: { type: mongoose.Schema.Types.ObjectId, ref: "invoice" },
     discount: Number,
     state: String,
+
   },
   { timestamps: true }
 );

@@ -7,6 +7,7 @@ const InvoiceSchema = new Schema(
     total: Number,
     paid: Number,
     client: { type: mongoose.Schema.Types.ObjectId, ref: "client" },
+    cashRegister:{ type: mongoose.Schema.Types.ObjectId, ref: "cashRegister" },
     state: String,
   },
   { timestamps: true }

@@ -15,6 +15,7 @@ const saleController = require("./controllers/saleController");
 const productController = require("./controllers/productController");
 const transactionController = require("./controllers/transactionController");
 const movementController = require("./controllers/movementController");
+const cashRegisterController = require("./controllers/cashRegisterController");
 
 const clientValidator = require("./validator/clientValidator");
 const vehicleValidator = require("./validator/vehicleValidator");
@@ -66,6 +67,14 @@ app.post("/invoice/list/", saleController.invoice_list_get);
 
 app.post("/movement/list/create", movementController.movement_list_create);
 app.post("/movement/list", movementController.movement_list_get);
+
+app.post("/cashRegister/read/last/open", cashRegisterController.read_last_open);
+app.post("/cashRegister/create", cashRegisterController.create);
+app.post("/cashRegister/read", cashRegisterController.read);
+
+app.post("/cashRegister/read/list", cashRegisterController.read_list);
+app.post("/cashRegister/close/last/open", cashRegisterController.close_last_open);
+app.get("/cashRegister/open/last/close", cashRegisterController.open_last_close);
 
 async function start() {
   await mongoose.connect(MONGODB_URL, {

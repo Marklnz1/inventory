@@ -3,12 +3,19 @@ const Invoice = require("../models/Invoice");
 const Movement = require("../models/Movement");
 const Product = require("../models/Product");
 const Payment = require("../models/Payment");
+const InvoicePayment = require("../models/InvoicePayment");
 const mongoose = require("mongoose");
+const querys = require("../utils/querys");
 
 const util = require("util");
+const CashRegister = require("../models/CashRegister");
 const RENIEC = process.env.RENIEC;
 module.exports.sale_create_list = async (req, res, next) => {
   try {
+    let lastCashRegister = await querys.getLastDoc(CashRegister,"code",{state:"open"});
+    if(lastCashRegister==null){
+      throw new Error("No se encontro un registro de caja abierto");
+    }
     let salesData = req.body["docs"];
     if (salesData.length == 0) {
       res.status(400).json({ error: "lista vacia" });
@@ -18,15 +25,9 @@ module.exports.sale_create_list = async (req, res, next) => {
     for (let sd of salesData) {
       movementsData.push(sd["movement"]);
     }
-    let lastDoc = await Movement.find({}, { code: 1 })
-      .sort({ code: -1 })
-      .limit(1);
-    let code = 1;
-    if (lastDoc.length != 0) {
-      code = lastDoc[0].code + 1;
-    }
+    let lastCode = await querys.getLastCode(Movement);
     for (let doc of movementsData) {
-      doc.code = code++;
+      doc.code = lastCode++;
       doc.state = "active";
     }
 
@@ -40,51 +41,51 @@ module.exports.sale_create_list = async (req, res, next) => {
       movementsData[i].price = products[i].price;
     }
     let movements = await Movement.insertMany(movementsData);
-    lastDoc = await Invoice.find({}, { code: 1 }).sort({ code: -1 }).limit(1);
-    code = 1;
-    if (lastDoc.length != 0) {
-      code = lastDoc[0].code + 1;
-    }
-    const payments = [];
-    let paid = 0;
-
-    for (let payment of req.body["payments"]) {
-      paid += payment.amount;
-      payments.push({
-        amount: payment.amount,
-        method: payment.method,
-        state: "active",
-      });
-    }
+    
+    
     let total = 0;
     for (let i = 0; i < movements.length; i++) {
       total +=
         Math.abs(movements[i].quantity) *
         (movements[i].price - products[i].maxDiscount);
     }
+    lastCode = await querys.getLastCode(Invoice);
+    const paymentsData = req.body["payments"];
+    let paid = 0;
+
+    for (let payment of paymentsData) {
+      paid += payment.amount;
+      payment.state = "active";
+    }
+    let payments = await Payment.insertMany(paymentsData);
     const invoice = await Invoice.create({
-      code,
+      cashRegister:lastCashRegister._id,
+      code:lastCode,
       total: total,
       paid: paid,
       client: req.body["clientId"],
       state: "active",
     });
-    for (let payment of payments) {
-      payment["invoice"] = invoice._id;
-    }
-
-    await Payment.insertMany(payments);
 
     let sales = [];
     for (let i = 0; i < movements.length; i++) {
       sales.push({
-        discount: products[i].maxDiscount,
+        discount: salesData[i].discount>0? products[i].maxDiscount*movements[i].quantity:0,
         movement: movements[i]._id,
         invoice: invoice._id,
         state: "active",
       });
     }
     await Sale.insertMany(sales);
+    // for (let payment of paymentsData) {
+    //   payment["invoice"] = invoice._id;
+    // }
+ 
+    let invoicePayments = [];
+    for(let p of payments){
+      invoicePayments.push({invoice:invoice._id,payment:p._id});
+    }
+    await InvoicePayment.insertMany(invoicePayments);
 
     const bulkOps = movements.map((movement) => ({
       updateOne: {
@@ -96,7 +97,7 @@ module.exports.sale_create_list = async (req, res, next) => {
     }));
     await Product.bulkWrite(bulkOps);
 
-    res.status(200).json({ code });
+    res.status(200).json({ code:lastCode });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
