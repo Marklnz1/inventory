@@ -133,6 +133,18 @@ module.exports.product_list_get = async (req, res, next) => {
     res.status(400).json({ error: error.message });
   }
 };
+module.exports.product_list_sync = async (req, res, next) => {
+  try {
+    let { syncDate } = req.body;
+
+    let findData = { updatedAt: { $gt: new Date(syncDate) }, state: { $ne: "removed" } };
+
+    let docs = await Product.find(findData).lean().exec();
+    res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 function fixedPage(page, numPages) {
   page = Math.abs(page) || 0;
   page = clamp(page, 0, clamp(numPages - 1, 0, Number.MAX_SAFE_INTEGER));

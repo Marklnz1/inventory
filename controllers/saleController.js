@@ -3,101 +3,140 @@ const Invoice = require("../models/Invoice");
 const Movement = require("../models/Movement");
 const Product = require("../models/Product");
 const Payment = require("../models/Payment");
-const InvoicePayment = require("../models/InvoicePayment");
 const mongoose = require("mongoose");
 const querys = require("../utils/querys");
 
 const util = require("util");
 const CashRegister = require("../models/CashRegister");
 const RENIEC = process.env.RENIEC;
+module.exports.list_sync = async (req, res, next) => {
+  try {
+    let { syncDate } = req.body;
+    let findData = {
+      updatedAt: { $gt: new Date(syncDate) },
+      state: { $ne: "removed" },
+    };
+    let docs = await Invoice.find(findData).populate("client").populate("cashRegister").lean().exec();
+    res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+module.exports.sale_list_sync = async (req, res, next) => {
+  try {
+    let { syncDate } = req.body;
+    let findData = {
+      updatedAt: { $gt: new Date(syncDate) },
+      state: { $ne: "removed" },
+    };
+    let docs = await Sale.find(findData)
+      .populate("invoice")
+      .populate("movement")
+      .populate({path:"invoice",populate:{path:"client"}})
+      .populate({path:"invoice",populate:{path:"cashRegister"}})
+      .populate({path:"movement",populate:{path:"product"}})
+      .lean()
+      .exec();
+    res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 module.exports.sale_create_list = async (req, res, next) => {
   try {
-    let lastCashRegister = await querys.getLastDoc(CashRegister,"code",{state:"open"});
-    if(lastCashRegister==null){
-      throw new Error("No se encontro un registro de caja abierto");
-    }
-    let salesData = req.body["docs"];
-    if (salesData.length == 0) {
-      res.status(400).json({ error: "lista vacia" });
-      return;
-    }
-    let movementsData = [];
-    for (let sd of salesData) {
-      movementsData.push(sd["movement"]);
-    }
-    let lastCode = await querys.getLastCode(Movement);
-    for (let doc of movementsData) {
-      doc.code = lastCode++;
-      doc.state = "active";
+    // Obtener el último registro de caja abierto
+    const lastCashRegister = await querys.getLastDoc(CashRegister, "code", {
+      state: "open",
+    });
+    if (!lastCashRegister) {
+      throw new Error("No se encontró un registro de caja abierto");
     }
 
-    let productsIds = [];
-    for (let movement of movementsData) {
-      productsIds.push(movement.product);
+    // Validar datos de venta
+    const { docs: salesData, payments: paymentsData, clientId } = req.body;
+    if (!salesData.length) {
+      throw new Error("Lista de ventas vacía");
     }
 
-    let products = await Product.find({ _id: { $in: productsIds } });
-    for (let i = 0; i < products.length; i++) {
-      movementsData[i].price = products[i].price;
-    }
-    let movements = await Movement.insertMany(movementsData);
-    
-    
-    let total = 0;
-    for (let i = 0; i < movements.length; i++) {
-      total +=
-        Math.abs(movements[i].quantity) *
-        (movements[i].price - products[i].maxDiscount);
-    }
-    lastCode = await querys.getLastCode(Invoice);
-    const paymentsData = req.body["payments"];
-    let paid = 0;
+    // Preparar datos de movimientos
+    const movementsData = salesData.map((sd) => ({
+      ...sd.movement,
+      state: "active",
+    }));
+    const movementLastCode = await querys.getLastCode(Movement);
+    movementsData.forEach((movement, index) => {
+      movement.code = movementLastCode + index;
+    });
 
-    for (let payment of paymentsData) {
-      paid += payment.amount;
-      payment.state = "active";
-    }
-    let payments = await Payment.insertMany(paymentsData);
+    // Obtener productos y actualizar precios
+    const productsIds = [
+      ...new Set(movementsData.map((m) => m.product.toString())),
+    ];
+    const products = await Product.find({ _id: { $in: productsIds } });
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+    movementsData.forEach((movement) => {
+      const product = productMap.get(movement.product.toString());
+      movement.price = product.price;
+    });
+
+    // Insertar movimientos
+    const movements = await Movement.insertMany(movementsData);
+
+    // Calcular total
+    const total = movements.reduce((sum, movement, index) => {
+      const product = productMap.get(movement.product.toString());
+      const discount = salesData[index].discount > 0 ? product.maxDiscount : 0;
+      return sum + Math.abs(movement.quantity) * (movement.price - discount);
+    }, 0);
+
+    // Procesar pagos
+    const paid = paymentsData.reduce((sum, payment) => sum + payment.amount, 0);
+
+    // Crear factura
+    const invoiceLastCode = await querys.getLastCode(Invoice);
+    // await new Promise((resolve) => setTimeout(resolve, 3000));
     const invoice = await Invoice.create({
-      cashRegister:lastCashRegister._id,
-      code:lastCode,
-      total: total,
-      paid: paid,
-      client: req.body["clientId"],
+      cashRegister: lastCashRegister._id,
+      code: invoiceLastCode,
+      total,
+      paid,
+      client: clientId,
       state: "active",
     });
 
-    let sales = [];
-    for (let i = 0; i < movements.length; i++) {
-      sales.push({
-        discount: salesData[i].discount>0? products[i].maxDiscount*movements[i].quantity:0,
-        movement: movements[i]._id,
-        invoice: invoice._id,
+    // Insertar pagos
+    await Payment.insertMany(
+      paymentsData.map((payment) => ({
+        ...payment,
         state: "active",
-      });
-    }
-    await Sale.insertMany(sales);
-    // for (let payment of paymentsData) {
-    //   payment["invoice"] = invoice._id;
-    // }
- 
-    let invoicePayments = [];
-    for(let p of payments){
-      invoicePayments.push({invoice:invoice._id,payment:p._id});
-    }
-    await InvoicePayment.insertMany(invoicePayments);
+        invoice: invoice._id,
+      }))
+    );
 
+    // Crear ventas
+    const sales = movements.map((movement, index) => ({
+      discount:
+        salesData[index].discount > 0
+          ? productMap.get(movement.product.toString()).maxDiscount *
+            movement.quantity
+          : 0,
+      movement: movement._id,
+      invoice: invoice._id,
+      state: "active",
+    }));
+    await Sale.insertMany(sales);
+
+    // Actualizar stock de productos
     const bulkOps = movements.map((movement) => ({
       updateOne: {
-        filter: {
-          _id: movement.product,
-        },
+        filter: { _id: movement.product },
         update: { $inc: { stock: movement.quantity } },
       },
     }));
     await Product.bulkWrite(bulkOps);
 
-    res.status(200).json({ code:lastCode });
+    res.status(200).json({ code: invoiceLastCode });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -118,6 +157,7 @@ module.exports.invoice_list_get = async (req, res, next) => {
     }
     const results = await Invoice.aggregate([
       ...fieldIdToObject("client", "client"),
+      ...fieldIdToObject("cashRegister", "cashRegister"),
       {
         $match: matchData,
       },

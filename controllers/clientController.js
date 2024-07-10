@@ -2,7 +2,18 @@ const Client = require("../models/Client");
 const util = require("util");
 const APISNET = process.env.APISNET;
 const APISPERU = process.env.APISPERU;
+module.exports.list_sync = async (req, res, next) => {
+  try {
+    let { syncDate } = req.body;
 
+    let findData = { updatedAt: { $gt: new Date(syncDate) }, state: { $ne: "removed" } };
+
+    let docs = await Client.find(findData).lean().exec();
+    res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 module.exports.client_create = async (req, res, next) => {
   try {
     const newClient = await Client.create(req.body);

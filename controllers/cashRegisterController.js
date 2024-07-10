@@ -1,11 +1,19 @@
 const CashRegister = require("../models/CashRegister");
 const Invoice = require("../models/Invoice");
-const InvoicePayment = require("../models/InvoicePayment");
 
 const querys = require("../utils/querys");
 const util = require("util");
 const mongoose = require("mongoose");
-
+module.exports.list_sync = async (req, res, next) => {
+  try {
+    let { syncDate } = req.body;
+    let findData = { updatedAt: { $gt: new Date(syncDate) }, state: { $ne: "removed" } };
+    let docs = await CashRegister.find(findData).lean().exec();
+    res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 module.exports.create = async (req, res, next) => {
   try {
     let lastDocOpen = await querys.getLastDoc(CashRegister, "code", {
@@ -15,7 +23,6 @@ module.exports.create = async (req, res, next) => {
       throw new Error("Existe un Registro de Caja Abierto");
     }
     let code = await querys.getLastCode(CashRegister);
-
     let data = {
       code,
       state: "open",
@@ -134,21 +141,13 @@ module.exports.read = async (req, res, next) => {
             ...fieldIdToObject("client", "client"),
             {
               $lookup: {
-                from: "invoicePayment",
+                from: "payment",
                 localField: "_id",
                 foreignField: "invoice",
-                pipeline: [...fieldIdToObject("payment", "payment")],
-                as: "invoicePayment",
+                as: "payments",
               },
             },
-            {
-              $addFields: {
-                payments: "$invoicePayment.payment",
-              },
-            },
-            {
-              $unset: "invoicePayment",
-            },
+           
           ],
           as: "invoices",
         },
@@ -182,34 +181,7 @@ module.exports.read_last_open = async (req, res, next) => {
       {
         $match: { _id: doc._id },
       },
-      {
-        $lookup: {
-          from: "invoice",
-          localField: "_id",
-          foreignField: "cashRegister",
-          pipeline: [
-            ...fieldIdToObject("client", "client"),
-            {
-              $lookup: {
-                from: "invoicePayment",
-                localField: "_id",
-                foreignField: "invoice",
-                pipeline: [...fieldIdToObject("payment", "payment")],
-                as: "invoicePayment",
-              },
-            },
-            {
-              $addFields: {
-                payments: "$invoicePayment.payment",
-              },
-            },
-            {
-              $unset: "invoicePayment",
-            },
-          ],
-          as: "invoices",
-        },
-      },
+     
     ]);
     // console.log(util.inspect(cashRegister,true,20));
     res

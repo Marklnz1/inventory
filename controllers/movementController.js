@@ -4,6 +4,16 @@ const mongoose = require("mongoose");
 
 const util = require("util");
 const RENIEC = process.env.RENIEC;
+module.exports.list_sync = async (req, res, next) => {
+  try {
+    let { syncDate } = req.body;
+    let findData = { updatedAt: { $gt: new Date(syncDate) }, state: { $ne: "removed" } };
+    let docs = await Movement.find(findData).populate("product").lean().exec();
+    res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 module.exports.movement_list_create = async (req, res, next) => {
   try {
     if (req.body["docs"].length == 0) {
@@ -22,6 +32,16 @@ module.exports.movement_list_create = async (req, res, next) => {
       doc.code = code++;
       doc.state = "active";
     }
+    const productsIds = [
+      ...new Set(req.body["docs"].map((m) => m.product.toString())),
+    ];
+    const products = await Product.find({ _id: { $in: productsIds } });
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+    req.body["docs"].forEach((movement) => {
+      const product = productMap.get(movement.product.toString());
+      movement.price = product.price;
+    });
     await Movement.insertMany(req.body["docs"]);
     const bulkOps = req.body["docs"].map((movement) => ({
       updateOne: {
