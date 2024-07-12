@@ -7,10 +7,37 @@ const mongoose = require("mongoose");
 module.exports.list_sync = async (req, res, next) => {
   try {
     let { syncDate } = req.body;
-    let findData = { updatedAt: { $gt: new Date(syncDate) }, state: { $ne: "removed" } };
+    let findData = {
+      updatedAt: { $gt: new Date(syncDate) },
+      state: { $ne: "removed" },
+    };
     let docs = await CashRegister.find(findData).lean().exec();
     res.status(200).json({ docs: docs ?? [] });
   } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+module.exports.update_list_sync = async (req, res, next) => {
+  try {
+    let { docs } = req.body;
+    for(let doc of docs){
+      doc.createdAtLocal = doc.createdAt;
+      doc.updatedAtLocal = doc.updatedAt;
+    }
+   await CashRegister.bulkWrite(
+      docs.map((cashRegister) => ({
+        updateOne: {
+          filter: { code: cashRegister.code },
+          update: { $set: cashRegister },
+          upsert: true,
+        },
+      }))
+    );
+    let lastDoc = await CashRegister.findOne()
+      .sort({ updatedAt: -1 })
+      .limit(1);
+      res.status(200).json({ syncDate: lastDoc?.updatedAt });
+    } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
@@ -147,7 +174,6 @@ module.exports.read = async (req, res, next) => {
                 as: "payments",
               },
             },
-           
           ],
           as: "invoices",
         },
@@ -181,7 +207,6 @@ module.exports.read_last_open = async (req, res, next) => {
       {
         $match: { _id: doc._id },
       },
-     
     ]);
     // console.log(util.inspect(cashRegister,true,20));
     res

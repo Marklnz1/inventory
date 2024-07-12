@@ -3,13 +3,15 @@ const Schema = mongoose.Schema;
 
 const CashRegisterSchema = new Schema(
   {
-    code:Number,
+    code:{ type: Number, required: true, unique: true },
     state:String,
     startingAmount:Number,
     closedAt:Date,
     efective:Number,
     yape:Number,
-    transference:Number
+    transference:Number,
+    createdAtLocal:Date,
+    updatedAtLocal:Date
   },
   { timestamps: true }
 );

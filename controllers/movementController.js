@@ -7,9 +7,36 @@ const RENIEC = process.env.RENIEC;
 module.exports.list_sync = async (req, res, next) => {
   try {
     let { syncDate } = req.body;
-    let findData = { updatedAt: { $gt: new Date(syncDate) }, state: { $ne: "removed" } };
+    let findData = {
+      updatedAt: { $gt: new Date(syncDate) },
+      state: { $ne: "removed" },
+    };
     let docs = await Movement.find(findData).populate("product").lean().exec();
     res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+module.exports.sync_list_update = async (req, res, next) => {
+  try {
+    let movements = req.body["docs"];
+    const productCodes = [...new Set(movements.map((m) => m.productCode))];
+    const products = await Product.find({ code: { $in: productCodes } });
+    const productsMap = new Map(products.map((p) => [p.code, p._id]));
+    for (let m of movements) {
+      m.product = productsMap.get(m.productCode);
+    }
+    await Movement.bulkWrite(
+      movements.map((movement) => ({
+        updateOne: {
+          filter: { code: movement.code },
+          update: { $set: movement },
+          upsert: true,
+        },
+      }))
+    );
+    let lastDoc = await Movement.findOne().sort({ updatedAt: -1 }).limit(1);
+    res.status(200).json({ syncDate: lastDoc?.updatedAt });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

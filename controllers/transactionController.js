@@ -16,11 +16,37 @@ module.exports.list_sync = async (req, res, next) => {
     };
     let docs = await Payment.find(findData)
       .populate("invoice")
-      .populate({path:"invoice",populate:{path:"client"}})
-      .populate({path:"invoice",populate:{path:"cashRegister"}})
+      .populate({ path: "invoice", populate: { path: "client" } })
+      .populate({ path: "invoice", populate: { path: "cashRegister" } })
       .lean()
       .exec();
     res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+module.exports.update_list_sync = async (req, res, next) => {
+  try {
+    let payments = req.body["docs"];
+    const invoiceCodes = [...new Set(payments.map((p) => p.invoiceCode))];
+    const invoices = await Invoice.find({
+      code: { $in: invoiceCodes },
+    });
+    const invoicesMap = new Map(invoices.map((i) => [i.code, i._id]));
+    for (let p of payments) {
+      p.invoice = invoicesMap.get(p.invoiceCode);
+    }
+    await Payment.bulkWrite(
+      payments.map((payment) => ({
+        updateOne: {
+          filter: { code: payment.code },
+          update: { $set: payment },
+          upsert: true,
+        },
+      }))
+    );
+    let lastDoc = await Payment.findOne().sort({ updatedAt: -1 }).limit(1);
+    res.status(200).json({ syncDate: lastDoc?.updatedAt });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

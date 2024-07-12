@@ -33,6 +33,7 @@ app.engine("html", require("ejs").renderFile);
 app.get("/", (req, res) => {
   res.render("inventory/index");
 });
+app.get("/verify",(req,res)=>res.json({}));
 
 app.post("/client/create", clientController.client_create);
 app.post("/client/read", clientController.client_read);
@@ -49,6 +50,7 @@ app.post("/client/list/sync", clientController.list_sync);
 app.post("/sale/create/list", saleController.sale_create_list);
 app.post("/sale/list", saleController.sale_list_get);
 app.post("/sale/list/sync", saleController.sale_list_sync);
+app.post("/sale/update/list/sync", saleController.sale_sync_list_update);
 
 app.post("/product/create", productController.product_create);
 app.post("/product/read", productController.product_read);
@@ -67,22 +69,25 @@ app.post("/payment/create", transactionController.payment_create);
 // app.post("/payment/delete", transactionController.payment_delete);
 app.post("/payment/list/", transactionController.payment_list_get);
 app.post("/payment/list/sync", transactionController.list_sync);
+app.post("/payment/update/list/sync", transactionController.update_list_sync);
 
 app.post("/invoice/list/", saleController.invoice_list_get);
-app.post("/invoice/list/sync", saleController.list_sync);
+app.post("/invoice/list/sync", saleController.invoice_list_sync);
+app.post("/invoice/update/list/sync", saleController.invoice_sync_list_update);
 
 app.post("/movement/list/create", movementController.movement_list_create);
 app.post("/movement/list", movementController.movement_list_get);
 app.post("/movement/list/sync", movementController.list_sync);
+app.post("/movement/update/list/sync", movementController.sync_list_update);
 
 app.post("/cashRegister/read/last/open", cashRegisterController.read_last_open);
 app.post("/cashRegister/create", cashRegisterController.create);
 app.post("/cashRegister/read", cashRegisterController.read);
-
 app.post("/cashRegister/read/list", cashRegisterController.read_list);
 app.post("/cashRegister/close/last/open", cashRegisterController.close_last_open);
 app.get("/cashRegister/open/last/close", cashRegisterController.open_last_close);
 app.post("/cashRegister/list/sync", cashRegisterController.list_sync);
+app.post("/cashRegister/update/list/sync", cashRegisterController.update_list_sync);
 
 async function start() {
   await mongoose.connect(MONGODB_URL, {

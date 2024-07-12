@@ -8,20 +8,8 @@ const querys = require("../utils/querys");
 
 const util = require("util");
 const CashRegister = require("../models/CashRegister");
+const Client = require("../models/Client");
 const RENIEC = process.env.RENIEC;
-module.exports.list_sync = async (req, res, next) => {
-  try {
-    let { syncDate } = req.body;
-    let findData = {
-      updatedAt: { $gt: new Date(syncDate) },
-      state: { $ne: "removed" },
-    };
-    let docs = await Invoice.find(findData).populate("client").populate("cashRegister").lean().exec();
-    res.status(200).json({ docs: docs ?? [] });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
 module.exports.sale_list_sync = async (req, res, next) => {
   try {
     let { syncDate } = req.body;
@@ -32,12 +20,93 @@ module.exports.sale_list_sync = async (req, res, next) => {
     let docs = await Sale.find(findData)
       .populate("invoice")
       .populate("movement")
-      .populate({path:"invoice",populate:{path:"client"}})
-      .populate({path:"invoice",populate:{path:"cashRegister"}})
-      .populate({path:"movement",populate:{path:"product"}})
+      .populate({ path: "invoice", populate: { path: "client" } })
+      .populate({ path: "invoice", populate: { path: "cashRegister" } })
+      .populate({ path: "movement", populate: { path: "product" } })
       .lean()
       .exec();
     res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+module.exports.invoice_list_sync = async (req, res, next) => {
+  try {
+    let { syncDate } = req.body;
+    let findData = {
+      updatedAt: { $gt: new Date(syncDate) },
+      state: { $ne: "removed" },
+    };
+    let docs = await Invoice.find(findData)
+      .populate("client")
+      .populate("cashRegister")
+      .lean()
+      .exec();
+    res.status(200).json({ docs: docs ?? [] });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+module.exports.invoice_sync_list_update = async (req, res, next) => {
+  try {
+    let invoices = req.body["docs"];
+    const dnis = [...new Set(invoices.map((i) => i.clientDni))];
+    const clients = await Client.find({ dni: { $in: dnis } });
+    const clientsMap = new Map(clients.map((c) => [c.dni, c._id]));
+
+    const cashRegisterCodes = [
+      ...new Set(invoices.map((i) => i.cashRegisterCode)),
+    ];
+    const cashRegisters = await CashRegister.find({
+      code: { $in: cashRegisterCodes },
+    });
+    const cashRegistersMap = new Map(cashRegisters.map((c) => [c.code, c._id]));
+    for (let i of invoices) {
+      i.client = clientsMap.get(i.clientDni);
+      i.cashRegister = cashRegistersMap.get(i.cashRegisterCode);
+    }
+    await Invoice.bulkWrite(
+      invoices.map((invoice) => ({
+        updateOne: {
+          filter: { code: invoice.code },
+          update: { $set: invoice },
+          upsert: true,
+        },
+      }))
+    );
+    let lastDoc = await Invoice.findOne().sort({ updatedAt: -1 }).limit(1);
+    res.status(200).json({ syncDate: lastDoc?.updatedAt });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+module.exports.sale_sync_list_update = async (req, res, next) => {
+  try {
+    let sales = req.body["docs"];
+    const movementCodes = [...new Set(sales.map((s) => s.movementCode))];
+    const movements = await Movement.find({ code: { $in: movementCodes } });
+    const movementsMap = new Map(movements.map((m) => [m.code, m._id]));
+
+    const invoiceCodes = [...new Set(sales.map((s) => s.invoiceCode))];
+    const invoices = await Invoice.find({
+      code: { $in: invoiceCodes },
+    });
+    const invoicesMap = new Map(invoices.map((i) => [i.code, i._id]));
+    for (let s of sales) {
+      s.movement = movementsMap.get(s.movementCode);
+      s.invoice = invoicesMap.get(s.invoiceCode);
+    }
+    await Sale.bulkWrite(
+      sales.map((sale) => ({
+        updateOne: {
+          filter: { code: sale.code },
+          update: { $set: sale },
+          upsert: true,
+        },
+      }))
+    );
+    let lastDoc = await Sale.findOne().sort({ updatedAt: -1 }).limit(1);
+    res.status(200).json({ syncDate: lastDoc?.updatedAt });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
