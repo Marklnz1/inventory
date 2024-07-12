@@ -33,7 +33,7 @@ app.engine("html", require("ejs").renderFile);
 app.get("/", (req, res) => {
   res.render("inventory/index");
 });
-app.get("/verify",(req,res)=>res.json({}));
+app.get("/verify",(req,res)=>res.json({success:true}));
 
 app.post("/client/create", clientController.client_create);
 app.post("/client/read", clientController.client_read);
