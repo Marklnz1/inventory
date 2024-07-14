@@ -29,7 +29,7 @@ module.exports.sync_list_update = async (req, res, next) => {
     await Movement.bulkWrite(
       movements.map((movement) => ({
         updateOne: {
-          filter: { code: movement.code },
+          filter: { uuid: movement.uuid },
           update: { $set: movement },
           upsert: true,
         },

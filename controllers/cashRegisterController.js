@@ -27,7 +27,7 @@ module.exports.update_list_sync = async (req, res, next) => {
    await CashRegister.bulkWrite(
       docs.map((cashRegister) => ({
         updateOne: {
-          filter: { code: cashRegister.code },
+          filter: { uuid: cashRegister.uuid },
           update: { $set: cashRegister },
           upsert: true,
         },

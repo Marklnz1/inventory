@@ -28,18 +28,18 @@ module.exports.list_sync = async (req, res, next) => {
 module.exports.update_list_sync = async (req, res, next) => {
   try {
     let payments = req.body["docs"];
-    const invoiceCodes = [...new Set(payments.map((p) => p.invoiceCode))];
+    const invoiceUuids = [...new Set(payments.map((p) => p.invoiceUuid))];
     const invoices = await Invoice.find({
-      code: { $in: invoiceCodes },
+      uuid: { $in: invoiceUuids },
     });
-    const invoicesMap = new Map(invoices.map((i) => [i.code, i._id]));
+    const invoicesMap = new Map(invoices.map((i) => [i.uuid, i._id]));
     for (let p of payments) {
-      p.invoice = invoicesMap.get(p.invoiceCode);
+      p.invoice = invoicesMap.get(p.invoiceUuid);
     }
     await Payment.bulkWrite(
       payments.map((payment) => ({
         updateOne: {
-          filter: { code: payment.code },
+          filter: { uuid: payment.uuid },
           update: { $set: payment },
           upsert: true,
         },

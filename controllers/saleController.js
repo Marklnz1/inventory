@@ -54,21 +54,21 @@ module.exports.invoice_sync_list_update = async (req, res, next) => {
     const clients = await Client.find({ dni: { $in: dnis } });
     const clientsMap = new Map(clients.map((c) => [c.dni, c._id]));
 
-    const cashRegisterCodes = [
-      ...new Set(invoices.map((i) => i.cashRegisterCode)),
+    const cashRegisterUuids = [
+      ...new Set(invoices.map((i) => i.cashRegisterUuid)),
     ];
     const cashRegisters = await CashRegister.find({
-      code: { $in: cashRegisterCodes },
+      uuid: { $in: cashRegisterUuids },
     });
-    const cashRegistersMap = new Map(cashRegisters.map((c) => [c.code, c._id]));
+    const cashRegistersMap = new Map(cashRegisters.map((c) => [c.uuid, c._id]));
     for (let i of invoices) {
       i.client = clientsMap.get(i.clientDni);
-      i.cashRegister = cashRegistersMap.get(i.cashRegisterCode);
+      i.cashRegister = cashRegistersMap.get(i.cashRegisterUuid);
     }
     await Invoice.bulkWrite(
       invoices.map((invoice) => ({
         updateOne: {
-          filter: { code: invoice.code },
+          filter: { uuid: invoice.uuid },
           update: { $set: invoice },
           upsert: true,
         },
@@ -83,23 +83,23 @@ module.exports.invoice_sync_list_update = async (req, res, next) => {
 module.exports.sale_sync_list_update = async (req, res, next) => {
   try {
     let sales = req.body["docs"];
-    const movementCodes = [...new Set(sales.map((s) => s.movementCode))];
-    const movements = await Movement.find({ code: { $in: movementCodes } });
-    const movementsMap = new Map(movements.map((m) => [m.code, m._id]));
+    const movementUuids = [...new Set(sales.map((s) => s.movementUuid))];
+    const movements = await Movement.find({ uuid: { $in: movementUuids } });
+    const movementsMap = new Map(movements.map((m) => [m.uuid, m._id]));
 
-    const invoiceCodes = [...new Set(sales.map((s) => s.invoiceCode))];
+    const invoiceUuids = [...new Set(sales.map((s) => s.invoiceUuid))];
     const invoices = await Invoice.find({
-      code: { $in: invoiceCodes },
+      uuid: { $in: invoiceUuids },
     });
-    const invoicesMap = new Map(invoices.map((i) => [i.code, i._id]));
+    const invoicesMap = new Map(invoices.map((i) => [i.uuid, i._id]));
     for (let s of sales) {
-      s.movement = movementsMap.get(s.movementCode);
-      s.invoice = invoicesMap.get(s.invoiceCode);
+      s.movement = movementsMap.get(s.movementUuid);
+      s.invoice = invoicesMap.get(s.invoiceUuid);
     }
     await Sale.bulkWrite(
       sales.map((sale) => ({
         updateOne: {
-          filter: { code: sale.code },
+          filter: { uuid: sale.uuid },
           update: { $set: sale },
           upsert: true,
         },

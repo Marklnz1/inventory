@@ -3,7 +3,8 @@ const Schema = mongoose.Schema;
 
 const InvoiceSchema = new Schema(
   {
-    code: Number,
+    code: { type: Number, required: true}, 
+    uuid: { type: String, required: true, unique: true },
     total: Number,
     paid: Number,
     client: { type: mongoose.Schema.Types.ObjectId, ref: "client" },
