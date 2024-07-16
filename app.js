@@ -6,6 +6,14 @@ const cookieParser = require("cookie-parser");
 const authController = require("./controllers/authController");
 const adminController = require("./controllers/adminController");
 
+const CashRegister = require("./models/CashRegister");
+const Client = require("./models/Client");
+const Product = require("./models/Product");
+const Movement = require("./models/Movement");
+const Sale = require("./models/Sale");
+const Invoice = require("./models/Invoice");
+const Payment = require("./models/Payment");
+
 const extractUser = require("./middleware/extractUser");
 
 const vehicleController = require("./controllers/vehicleController");
@@ -33,7 +41,42 @@ app.engine("html", require("ejs").renderFile);
 app.get("/", (req, res) => {
   res.render("inventory/index");
 });
-app.get("/verify",(req,res)=>res.json({success:true}));
+app.get("/verify", async (req, res) => {
+  const lastProduct = await Product.findOne().sort({ updatedAt: -1 }).limit(1);
+  const product = lastProduct?.updatedAt ?? new Date(2000, 0, 1);
+
+  const lastClient = await Client.findOne().sort({ updatedAt: -1 }).limit(1);
+  const client = lastClient?.updatedAt ?? new Date(2000, 0, 1);
+
+  const lastCashRegister = await CashRegister.findOne()
+    .sort({ updatedAt: -1 })
+    .limit(1);
+  const cashRegister = lastCashRegister?.updatedAt ?? new Date(2000, 0, 1);
+
+  const lastMovement = await Movement.findOne()
+    .sort({ updatedAt: -1 })
+    .limit(1);
+  const movement = lastMovement?.updatedAt ?? new Date(2000, 0, 1);
+
+  const lastSale = await Sale.findOne().sort({ updatedAt: -1 }).limit(1);
+  const sale = lastSale?.updatedAt ?? new Date(2000, 0, 1);
+
+  const lastInvoice = await Invoice.findOne().sort({ updatedAt: -1 }).limit(1);
+  const invoice = lastInvoice?.updatedAt ?? new Date(2000, 0, 1);
+
+  const lastPayment = await Payment.findOne().sort({ updatedAt: -1 }).limit(1);
+  const payment = lastPayment?.updatedAt ?? new Date(2000, 0, 1);
+
+  res.json({
+    product,
+    client,
+    cashRegister,
+    movement,
+    sale,
+    invoice,
+    payment,
+  });
+});
 
 app.post("/client/create", clientController.client_create);
 app.post("/client/read", clientController.client_read);
@@ -84,10 +127,19 @@ app.post("/cashRegister/read/last/open", cashRegisterController.read_last_open);
 app.post("/cashRegister/create", cashRegisterController.create);
 app.post("/cashRegister/read", cashRegisterController.read);
 app.post("/cashRegister/read/list", cashRegisterController.read_list);
-app.post("/cashRegister/close/last/open", cashRegisterController.close_last_open);
-app.get("/cashRegister/open/last/close", cashRegisterController.open_last_close);
+app.post(
+  "/cashRegister/close/last/open",
+  cashRegisterController.close_last_open
+);
+app.get(
+  "/cashRegister/open/last/close",
+  cashRegisterController.open_last_close
+);
 app.post("/cashRegister/list/sync", cashRegisterController.list_sync);
-app.post("/cashRegister/update/list/sync", cashRegisterController.update_list_sync);
+app.post(
+  "/cashRegister/update/list/sync",
+  cashRegisterController.update_list_sync
+);
 
 async function start() {
   await mongoose.connect(MONGODB_URL, {

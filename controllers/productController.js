@@ -56,13 +56,13 @@ module.exports.product_create = async (req, res, next) => {
       code = lastDoc[0].code + 1;
     }
 
-    await Movement.create({
-      product: newProduct._id,
-      code,
-      quantity: req.body["stock"],
-      price: req.body["price"],
-      state: "active",
-    });
+    // await Movement.create({
+    //   product: newProduct._id,
+    //   code,
+    //   quantity: req.body["stock"],
+    //   price: req.body["price"],
+    //   state: "active",
+    // });
     res.status(200).json({
       product: newProduct,
     });
