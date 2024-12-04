@@ -20,6 +20,7 @@ const ProductSchema = new Schema(
   {
     uuid: String,
     syncCode: Number,
+    version: Number,
     ...fieldsBase,
   },
   { timestamps: true }

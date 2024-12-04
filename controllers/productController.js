@@ -13,11 +13,6 @@ module.exports.sync_list_update = async (req, res, next) => {
   }
 
   const uuids = products.map((product) => product.uuid);
-  const syncCodeMax = await updateAndGetSyncCode("product", products.length);
-  let syncCodeMin = syncCodeMax - products.length + 1;
-  for (const product of products) {
-    product.syncCode = syncCodeMin++;
-  }
 
   const productsBD = await Product.find({ uuid: { $in: uuids } })
     .lean()
@@ -35,14 +30,28 @@ module.exports.sync_list_update = async (req, res, next) => {
 
   products = Object.values(productsMap);
   await Product.bulkWrite(
-    products.map((product) => ({
-      updateOne: {
-        filter: { uuid: product.uuid },
-        update: { $set: product },
-        upsert: true,
-      },
-    }))
+    products.map((product) => {
+      const { version, ...productWithoutVersion } = product;
+      return {
+        updateOne: {
+          filter: { uuid: product.uuid },
+          //PROBLEMA CUANDO EL DOCUMENTO SE ESTA CRAENDO
+          update: { $set: productWithoutVersion, $inc: { version: 1 } },
+          upsert: true,
+        },
+      };
+    })
   );
+  const syncCodeMax = await updateAndGetSyncCode("product", products.length);
+  let syncCodeMin = syncCodeMax - products.length + 1;
+
+  const bulkOps = uuids.map((uuid, index) => ({
+    updateOne: {
+      filter: { uuid: uuid },
+      update: { $set: { syncCode: syncCodeMin + index } },
+    },
+  }));
+  await Product.bulkWrite(bulkOps);
   res.status(200).json({ syncCodeMax });
   // } catch (error) {
   //   res.status(400).json({ error: error.message });
@@ -202,7 +211,10 @@ module.exports.product_list_sync = async (req, res, next) => {
   };
 
   let docs = await Product.find(findData).lean().exec();
-  res.status(200).json({ docs: docs ?? [] });
+  const syncCodeMaxDB = docs.reduce((max, doc) => {
+    return doc.syncCode > max ? doc.syncCode : max;
+  }, docs[0].syncCode);
+  res.status(200).json({ docs: docs ?? [], syncCodeMax: syncCodeMaxDB });
   // } catch (error) {
   //   res.status(400).json({ error: error.message });
   // }
