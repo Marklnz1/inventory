@@ -1,16 +1,26 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-
+// Inserted: Insertado
+// Deleted: Eliminado
+const fieldsBase = {
+  name: String,
+  price: Number,
+  description: String,
+  stock: Number,
+  base64: String,
+  status: String,
+  maxDiscount: Number,
+};
+for (const key in fieldsBase) {
+  if (fieldsBase.hasOwnProperty(key)) {
+    fieldsBase[`${key}UpdatedAt`] = Date;
+  }
+}
 const ProductSchema = new Schema(
   {
-    code: Number,
-    name: String,
-    price: Number,
-    description: String,
-    stock: Number,
-    base64: String,
-    state: String,
-    maxDiscount: Number,
+    uuid: String,
+    syncCode: Number,
+    ...fieldsBase,
   },
   { timestamps: true }
 );

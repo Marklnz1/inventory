@@ -35,46 +35,43 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(cookieParser());
 
-app.set("view engine", "ejs");
+// app.set("view engine", "ejs");
 app.set("view engine", "html");
 app.engine("html", require("ejs").renderFile);
 app.get("/", (req, res) => {
   res.render("inventory/index");
 });
+
 app.get("/verify", async (req, res) => {
-  const lastProduct = await Product.findOne().sort({ updatedAt: -1 }).limit(1);
-  const product = lastProduct?.updatedAt ?? new Date(2000, 0, 1);
+  const lastProduct = await Product.findOne().sort({ syncCode: -1 });
+  const product = lastProduct?.syncCode ?? -1;
 
-  const lastClient = await Client.findOne().sort({ updatedAt: -1 }).limit(1);
-  const client = lastClient?.updatedAt ?? new Date(2000, 0, 1);
+  // const lastClient = await Client.findOne().sort({ updatedAt: -1 });
+  // const client = lastClient?.updatedAt ?? new Date(2000, 0, 1);
 
-  const lastCashRegister = await CashRegister.findOne()
-    .sort({ updatedAt: -1 })
-    .limit(1);
-  const cashRegister = lastCashRegister?.updatedAt ?? new Date(2000, 0, 1);
+  // const lastCashRegister = await CashRegister.findOne().sort({ updatedAt: -1 });
+  // const cashRegister = lastCashRegister?.updatedAt ?? new Date(2000, 0, 1);
 
-  const lastMovement = await Movement.findOne()
-    .sort({ updatedAt: -1 })
-    .limit(1);
-  const movement = lastMovement?.updatedAt ?? new Date(2000, 0, 1);
+  // const lastMovement = await Movement.findOne().sort({ updatedAt: -1 });
+  // const movement = lastMovement?.updatedAt ?? new Date(2000, 0, 1);
 
-  const lastSale = await Sale.findOne().sort({ updatedAt: -1 }).limit(1);
-  const sale = lastSale?.updatedAt ?? new Date(2000, 0, 1);
+  // const lastSale = await Sale.findOne().sort({ updatedAt: -1 });
+  // const sale = lastSale?.updatedAt ?? new Date(2000, 0, 1);
 
-  const lastInvoice = await Invoice.findOne().sort({ updatedAt: -1 }).limit(1);
-  const invoice = lastInvoice?.updatedAt ?? new Date(2000, 0, 1);
+  // const lastInvoice = await Invoice.findOne().sort({ updatedAt: -1 });
+  // const invoice = lastInvoice?.updatedAt ?? new Date(2000, 0, 1);
 
-  const lastPayment = await Payment.findOne().sort({ updatedAt: -1 }).limit(1);
-  const payment = lastPayment?.updatedAt ?? new Date(2000, 0, 1);
+  // const lastPayment = await Payment.findOne().sort({ updatedAt: -1 });
+  // const payment = lastPayment?.updatedAt ?? new Date(2000, 0, 1);
 
   res.json({
     product,
-    client,
-    cashRegister,
-    movement,
-    sale,
-    invoice,
-    payment,
+    // client,
+    // cashRegister,
+    // movement,
+    // sale,
+    // invoice,
+    // payment,
   });
 });
 
@@ -94,6 +91,7 @@ app.post("/sale/create/list", saleController.sale_create_list);
 app.post("/sale/list", saleController.sale_list_get);
 app.post("/sale/list/sync", saleController.sale_list_sync);
 app.post("/sale/update/list/sync", saleController.sale_sync_list_update);
+app.post("/product/update/list/sync", productController.sync_list_update);
 
 app.post("/product/create", productController.product_create);
 app.post("/product/read", productController.product_read);
