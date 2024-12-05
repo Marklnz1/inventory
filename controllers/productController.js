@@ -59,8 +59,8 @@ module.exports.sync_list_update = async (req, res, next) => {
 };
 function processDocument(doc, docDB) {
   for (const key in doc) {
-    if (key.endsWith("UpdateAt")) {
-      const field = key.slice(0, -8);
+    if (key.endsWith("UpdatedAt")) {
+      const field = key.slice(0, -9);
       doc = { ...doc, ...getRecentFields(field, doc, docDB) };
     }
   }
