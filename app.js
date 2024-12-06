@@ -47,8 +47,8 @@ app.get("/verify", async (req, res) => {
   const lastProduct = await Product.findOne().sort({ syncCode: -1 });
   const product = lastProduct?.syncCode ?? -1;
 
-  // const lastClient = await Client.findOne().sort({ updatedAt: -1 });
-  // const client = lastClient?.updatedAt ?? new Date(2000, 0, 1);
+  const lastClient = await Client.findOne().sort({ syncCode: -1 });
+  const client = lastClient?.syncCode ?? -1;
 
   // const lastCashRegister = await CashRegister.findOne().sort({ updatedAt: -1 });
   // const cashRegister = lastCashRegister?.updatedAt ?? new Date(2000, 0, 1);
@@ -67,7 +67,7 @@ app.get("/verify", async (req, res) => {
 
   res.json({
     product,
-    // client,
+    client,
     // cashRegister,
     // movement,
     // sale,
