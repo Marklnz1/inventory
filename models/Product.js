@@ -1,28 +1,17 @@
 const mongoose = require("mongoose");
+const { generateFields } = require("../utils/sync");
 const Schema = mongoose.Schema;
 // Inserted: Insertado
 // Deleted: Eliminado
-const fieldsBase = {
-  name: String,
-  price: Number,
-  description: String,
-  stock: Number,
-  base64: String,
-  status: String,
-  maxDiscount: Number,
-};
-for (const key in fieldsBase) {
-  if (fieldsBase.hasOwnProperty(key)) {
-    fieldsBase[`${key}UpdatedAt`] = Date;
-  }
-}
+
 const ProductSchema = new Schema(
-  {
-    uuid: String,
-    syncCode: Number,
-    version: Number,
-    ...fieldsBase,
-  },
+  generateFields({
+    name: String,
+    price: Number,
+    description: String,
+    stock: Number,
+    maxDiscount: Number,
+  }),
   { timestamps: true }
 );
 // ProductSchema.index({ name: "text" });

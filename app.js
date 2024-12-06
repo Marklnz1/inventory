@@ -27,6 +27,7 @@ const cashRegisterController = require("./controllers/cashRegisterController");
 
 const clientValidator = require("./validator/clientValidator");
 const vehicleValidator = require("./validator/vehicleValidator");
+const { update_list_sync, list_sync } = require("./utils/sync");
 
 const PORT = process.env.PORT;
 const MONGODB_URL = process.env.MONGODB_URL;
@@ -75,32 +76,31 @@ app.get("/verify", async (req, res) => {
   });
 });
 
-app.post("/client/create", clientController.client_create);
-app.post("/client/read", clientController.client_read);
-app.post(
-  "/client/update",
-  clientValidator.client_update,
-  clientController.client_update
-);
-app.post("/client/delete", clientController.client_delete);
-
-app.post("/client/list", clientController.client_list_get);
-app.post("/client/list/sync", clientController.list_sync);
-
 app.post("/sale/create/list", saleController.sale_create_list);
 app.post("/sale/list", saleController.sale_list_get);
 app.post("/sale/list/sync", saleController.sale_list_sync);
 app.post("/sale/update/list/sync", saleController.sale_sync_list_update);
-app.post("/product/update/list/sync", productController.sync_list_update);
 
-app.post("/product/create", productController.product_create);
-app.post("/product/read", productController.product_read);
-app.post("/product/update", productController.product_update);
-app.post("/product/delete", productController.product_delete);
-app.post("/product/list", productController.product_list_get);
-app.post("/product/list/sync", productController.product_list_sync);
+// app.post("/product/create", productController.product_create);
+// app.post("/product/read", productController.product_read);
+// app.post("/product/update", productController.product_update);
+// app.post("/product/delete", productController.product_delete);
+// app.post("/product/list", productController.product_list_get);
+app.post("/client/update/list/sync", (req, res, next) =>
+  update_list_sync(Client, "client", req, res, next)
+);
+app.post("/client/list/sync", (req, res, next) =>
+  list_sync(Client, "client", req, res, next)
+);
 
-app.post("/product/create/list", productController.product_create_list);
+app.post("/product/update/list/sync", (req, res, next) =>
+  update_list_sync(Product, "product", req, res, next)
+);
+app.post("/product/list/sync", (req, res, next) =>
+  list_sync(Product, "product", req, res, next)
+);
+
+// app.post("/product/create/list", productController.product_create_list);
 
 app.post("/debt/list/get", transactionController.debt_list);
 app.post("/debt/create", transactionController.debt_create);

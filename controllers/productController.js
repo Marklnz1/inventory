@@ -4,58 +4,79 @@ const { v7: uuidv7 } = require("uuid");
 const util = require("util");
 const { getSyncCodeTable, updateAndGetSyncCode } = require("../utils/sync");
 const { default: mongoose } = require("mongoose");
-module.exports.sync_list_update = async (req, res, next) => {
-  // try {
-  let products = req.body["docs"];
-  const productsMap = {};
-  for (const p of products) {
-    productsMap[p.uuid] = p;
-  }
+module.exports.list_sync = async (req, res, next) => {
+  try {
+    let { syncCodeMax } = req.body;
 
-  const uuids = products.map((product) => product.uuid);
+    let findData = {
+      syncCode: { $gt: syncCodeMax },
+      status: { $ne: "Deleted" },
+    };
 
-  const productsBD = await Product.find({ uuid: { $in: uuids } })
-    .lean()
-    .exec();
-  const productsDBmap = {};
-  for (const pdb of productsBD) {
-    productsDBmap[pdb.uuid] = pdb;
+    let docs = await Product.find(findData).lean().exec();
+    const syncCodeMaxDB = docs.reduce((max, doc) => {
+      return doc.syncCode > max ? doc.syncCode : max;
+    }, docs[0].syncCode);
+    res.status(200).json({ docs: docs ?? [], syncCodeMax: syncCodeMaxDB });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
-  for (const uuid of uuids) {
-    if (!productsDBmap[uuid]) {
-      continue;
+};
+module.exports.update_list_sync = async (req, res, next) => {
+  try {
+    let products = req.body["docs"];
+    const productsMap = {};
+    for (const p of products) {
+      productsMap[p.uuid] = p;
     }
-    productsMap[uuid] = processDocument(productsMap[uuid], productsDBmap[uuid]);
+
+    const uuids = products.map((product) => product.uuid);
+
+    const productsBD = await Product.find({ uuid: { $in: uuids } })
+      .lean()
+      .exec();
+    const productsDBmap = {};
+    for (const pdb of productsBD) {
+      productsDBmap[pdb.uuid] = pdb;
+    }
+    for (const uuid of uuids) {
+      if (!productsDBmap[uuid]) {
+        continue;
+      }
+      productsMap[uuid] = processDocument(
+        productsMap[uuid],
+        productsDBmap[uuid]
+      );
+    }
+
+    products = Object.values(productsMap);
+    await Product.bulkWrite(
+      products.map((product) => {
+        const { version, ...productWithoutVersion } = product;
+        return {
+          updateOne: {
+            filter: { uuid: product.uuid },
+            //PROBLEMA CUANDO EL DOCUMENTO SE ESTA CRAENDO
+            update: { $set: productWithoutVersion, $inc: { version: 1 } },
+            upsert: true,
+          },
+        };
+      })
+    );
+    const syncCodeMax = await updateAndGetSyncCode("product", products.length);
+    let syncCodeMin = syncCodeMax - products.length + 1;
+
+    const bulkOps = uuids.map((uuid, index) => ({
+      updateOne: {
+        filter: { uuid: uuid },
+        update: { $set: { syncCode: syncCodeMin + index } },
+      },
+    }));
+    await Product.bulkWrite(bulkOps);
+    res.status(200).json({ syncCodeMax });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
-
-  products = Object.values(productsMap);
-  await Product.bulkWrite(
-    products.map((product) => {
-      const { version, ...productWithoutVersion } = product;
-      return {
-        updateOne: {
-          filter: { uuid: product.uuid },
-          //PROBLEMA CUANDO EL DOCUMENTO SE ESTA CRAENDO
-          update: { $set: productWithoutVersion, $inc: { version: 1 } },
-          upsert: true,
-        },
-      };
-    })
-  );
-  const syncCodeMax = await updateAndGetSyncCode("product", products.length);
-  let syncCodeMin = syncCodeMax - products.length + 1;
-
-  const bulkOps = uuids.map((uuid, index) => ({
-    updateOne: {
-      filter: { uuid: uuid },
-      update: { $set: { syncCode: syncCodeMin + index } },
-    },
-  }));
-  await Product.bulkWrite(bulkOps);
-  res.status(200).json({ syncCodeMax });
-  // } catch (error) {
-  //   res.status(400).json({ error: error.message });
-  // }
 };
 function processDocument(doc, docDB) {
   for (const key in doc) {
@@ -201,24 +222,7 @@ module.exports.product_list_get = async (req, res, next) => {
     res.status(400).json({ error: error.message });
   }
 };
-module.exports.product_list_sync = async (req, res, next) => {
-  // try {
-  let { syncCodeMax } = req.body;
 
-  let findData = {
-    syncCode: { $gt: syncCodeMax },
-    status: { $ne: "Deleted" },
-  };
-
-  let docs = await Product.find(findData).lean().exec();
-  const syncCodeMaxDB = docs.reduce((max, doc) => {
-    return doc.syncCode > max ? doc.syncCode : max;
-  }, docs[0].syncCode);
-  res.status(200).json({ docs: docs ?? [], syncCodeMax: syncCodeMaxDB });
-  // } catch (error) {
-  //   res.status(400).json({ error: error.message });
-  // }
-};
 function fixedPage(page, numPages) {
   page = Math.abs(page) || 0;
   page = clamp(page, 0, clamp(numPages - 1, 0, Number.MAX_SAFE_INTEGER));
