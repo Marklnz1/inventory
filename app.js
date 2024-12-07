@@ -91,6 +91,13 @@ app.post("/client/list/sync", (req, res, next) =>
   list_sync(Client, req, res, next)
 );
 
+app.post("/movement/update/list/sync", (req, res, next) =>
+  update_list_sync(Movement, "movement", req, res, next)
+);
+app.post("/movement/list/sync", (req, res, next) =>
+  list_sync(Movement, req, res, next)
+);
+
 app.post("/product/update/list/sync", (req, res, next) =>
   update_list_sync(Product, "product", req, res, next)
 );
@@ -114,10 +121,10 @@ app.post("/invoice/list/", saleController.invoice_list_get);
 app.post("/invoice/list/sync", saleController.invoice_list_sync);
 app.post("/invoice/update/list/sync", saleController.invoice_sync_list_update);
 
-app.post("/movement/list/create", movementController.movement_list_create);
-app.post("/movement/list", movementController.movement_list_get);
-app.post("/movement/list/sync", movementController.list_sync);
-app.post("/movement/update/list/sync", movementController.sync_list_update);
+// app.post("/movement/list/create", movementController.movement_list_create);
+// app.post("/movement/list", movementController.movement_list_get);
+// app.post("/movement/list/sync", movementController.list_sync);
+// app.post("/movement/update/list/sync", movementController.sync_list_update);
 
 app.post("/cashRegister/read/last/open", cashRegisterController.read_last_open);
 app.post("/cashRegister/create", cashRegisterController.create);
