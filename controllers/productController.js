@@ -2,7 +2,6 @@ const Product = require("../models/Product");
 const Movement = require("../models/Movement");
 const { v7: uuidv7 } = require("uuid");
 const util = require("util");
-const { getSyncCodeTable, updateAndGetSyncCode } = require("../utils/sync");
 const { default: mongoose } = require("mongoose");
 module.exports.list_sync = async (req, res, next) => {
   try {
@@ -22,114 +21,7 @@ module.exports.list_sync = async (req, res, next) => {
     res.status(400).json({ error: error.message });
   }
 };
-module.exports.update_list_sync = async (req, res, next) => {
-  try {
-    let products = req.body["docs"];
-    const productsMap = {};
-    for (const p of products) {
-      productsMap[p.uuid] = p;
-    }
 
-    const uuids = products.map((product) => product.uuid);
-
-    const productsBD = await Product.find({ uuid: { $in: uuids } })
-      .lean()
-      .exec();
-    const productsDBmap = {};
-    for (const pdb of productsBD) {
-      productsDBmap[pdb.uuid] = pdb;
-    }
-    for (const uuid of uuids) {
-      if (!productsDBmap[uuid]) {
-        continue;
-      }
-      productsMap[uuid] = processDocument(
-        productsMap[uuid],
-        productsDBmap[uuid]
-      );
-    }
-
-    products = Object.values(productsMap);
-    await Product.bulkWrite(
-      products.map((product) => {
-        const { version, ...productWithoutVersion } = product;
-        return {
-          updateOne: {
-            filter: { uuid: product.uuid },
-            //PROBLEMA CUANDO EL DOCUMENTO SE ESTA CRAENDO
-            update: { $set: productWithoutVersion, $inc: { version: 1 } },
-            upsert: true,
-          },
-        };
-      })
-    );
-    const syncCodeMax = await updateAndGetSyncCode("product", products.length);
-    let syncCodeMin = syncCodeMax - products.length + 1;
-
-    const bulkOps = uuids.map((uuid, index) => ({
-      updateOne: {
-        filter: { uuid: uuid },
-        update: { $set: { syncCode: syncCodeMin + index } },
-      },
-    }));
-    await Product.bulkWrite(bulkOps);
-    res.status(200).json({ syncCodeMax });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-function processDocument(doc, docDB) {
-  for (const key in doc) {
-    if (key.endsWith("UpdatedAt")) {
-      const field = key.slice(0, -9);
-      doc = { ...doc, ...getRecentFields(field, doc, docDB) };
-    }
-  }
-  return doc;
-}
-function getRecentFields(field, doc, docDB) {
-  const date = new Date(doc[`${field}UpdatedAt`]);
-  const dateDB = docDB[`${field}UpdatedAt`];
-  const response = {};
-  response[field] = date > dateDB ? doc[field] : docDB[field];
-  response[`${field}UpdatedAt`] = date > dateDB ? date : dateDB;
-  return response;
-}
-module.exports.product_create_list = async (req, res, next) => {
-  try {
-    const docs = req.body["docs"];
-    const syncCodeMax = await updateAndGetSyncCode("product", docs.length);
-    for (const doc of docs) {
-      doc.syncCode = syncCodeMax;
-      syncCodeMax--;
-    }
-
-    let products = await Product.insertMany(docs);
-
-    // lastDoc = await Movement.find({}, { code: 1 }).sort({ code: -1 }).limit(1);
-    // code = 1;
-    // if (lastDoc.length != 0) {
-    //   code = lastDoc[0].code + 1;
-    // }
-    // let movements = [];
-
-    // for (let p of products) {
-    //   movements.push({
-    //     product: p._id,
-    //     code: code,
-    //     uuid: code + uuidv7(),
-    //     quantity: p.stock,
-    //     state: "active",
-    //     price: p.price,
-    //   });
-    //   code++;
-    // }
-    // await Movement.insertMany(movements);
-    res.status(200).json({});
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
 function obtenerNumeroAleatorio() {
   return Math.floor(Math.random() * 100) + 1;
 }

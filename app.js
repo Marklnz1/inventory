@@ -28,6 +28,7 @@ const cashRegisterController = require("./controllers/cashRegisterController");
 const clientValidator = require("./validator/clientValidator");
 const vehicleValidator = require("./validator/vehicleValidator");
 const { update_list_sync, list_sync } = require("./utils/sync");
+const SyncMetadata = require("./models/SyncMetadata");
 
 const PORT = process.env.PORT;
 const MONGODB_URL = process.env.MONGODB_URL;
@@ -43,37 +44,34 @@ app.get("/", (req, res) => {
   res.render("inventory/index");
 });
 
-app.get("/verify", async (req, res) => {
-  const lastProduct = await Product.findOne().sort({ syncCode: -1 });
-  const product = lastProduct?.syncCode ?? -1;
-
-  const lastClient = await Client.findOne().sort({ syncCode: -1 });
-  const client = lastClient?.syncCode ?? -1;
-
-  // const lastCashRegister = await CashRegister.findOne().sort({ updatedAt: -1 });
-  // const cashRegister = lastCashRegister?.updatedAt ?? new Date(2000, 0, 1);
-
-  // const lastMovement = await Movement.findOne().sort({ updatedAt: -1 });
-  // const movement = lastMovement?.updatedAt ?? new Date(2000, 0, 1);
-
-  // const lastSale = await Sale.findOne().sort({ updatedAt: -1 });
-  // const sale = lastSale?.updatedAt ?? new Date(2000, 0, 1);
-
-  // const lastInvoice = await Invoice.findOne().sort({ updatedAt: -1 });
-  // const invoice = lastInvoice?.updatedAt ?? new Date(2000, 0, 1);
-
-  // const lastPayment = await Payment.findOne().sort({ updatedAt: -1 });
-  // const payment = lastPayment?.updatedAt ?? new Date(2000, 0, 1);
-
-  res.json({
-    product,
-    client,
-    // cashRegister,
-    // movement,
-    // sale,
-    // invoice,
-    // payment,
+app.post("/verify", async (req, res) => {
+  const tableNames = req.body.tableNames;
+  let syncMetadataList = await SyncMetadata.find({
+    tableName: { $in: tableNames },
   });
+  const foundNames = syncMetadataList.map(
+    (syncMetadata) => syncMetadata.tableName
+  );
+  const notFoundNames = tableNames.filter(
+    (tableName) => !foundNames.includes(tableName)
+  );
+
+  if (notFoundNames) {
+    const newSyncMetadataList = await SyncMetadata.insertMany(
+      notFoundNames.map((tableName) => ({
+        tableName: tableName,
+      }))
+    );
+    syncMetadataList = syncMetadataList.concat(newSyncMetadataList);
+  }
+
+  const syncMetadataMap = Object.fromEntries(
+    syncMetadataList.map((syncMetadata) => [
+      syncMetadata.tableName,
+      syncMetadata.syncCodeMax,
+    ])
+  );
+  res.json(syncMetadataMap);
 });
 
 app.post("/sale/create/list", saleController.sale_create_list);
@@ -90,14 +88,14 @@ app.post("/client/update/list/sync", (req, res, next) =>
   update_list_sync(Client, "client", req, res, next)
 );
 app.post("/client/list/sync", (req, res, next) =>
-  list_sync(Client, "client", req, res, next)
+  list_sync(Client, req, res, next)
 );
 
 app.post("/product/update/list/sync", (req, res, next) =>
   update_list_sync(Product, "product", req, res, next)
 );
 app.post("/product/list/sync", (req, res, next) =>
-  list_sync(Product, "product", req, res, next)
+  list_sync(Product, req, res, next)
 );
 
 // app.post("/product/create/list", productController.product_create_list);

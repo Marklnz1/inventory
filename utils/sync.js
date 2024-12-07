@@ -1,4 +1,6 @@
-const SyncCodeTable = require("../models/SyncCodeTable");
+const SyncCodeTable = require("../models/SyncMetadata");
+const util = require("util");
+
 module.exports.list_sync = async (Model, req, res, next) => {
   try {
     let { syncCodeMax } = req.body;
@@ -79,32 +81,39 @@ function processDocument(doc, docDB) {
   }
   return doc;
 }
-module.exports.getSyncCodeTable = async () => {
-  let syncCodeTable = await SyncCodeTable.findOne();
-  if (!syncCodeTable) {
-    syncCodeTable = new SyncCodeTable({
-      product: 0,
-      movement: 0,
-      invoice: 0,
-      payment: 0,
-      sale: 0,
-      cashRegister: 0,
-      client: 0,
-    });
-    await syncCodeTable.save();
-  }
-  return syncCodeTable;
-};
-module.exports.updateAndGetSyncCode = async (table, numberOfDocuments) => {
+function getRecentFields(field, doc, docDB) {
+  const date = new Date(doc[`${field}UpdatedAt`]);
+  const dateDB = docDB[`${field}UpdatedAt`];
+  const response = {};
+  response[field] = date > dateDB ? doc[field] : docDB[field];
+  response[`${field}UpdatedAt`] = date > dateDB ? date : dateDB;
+  return response;
+}
+// module.exports.getSyncCodeTable = async () => {
+//   let syncCodeTable = await SyncCodeTable.findOne();
+//   if (!syncCodeTable) {
+//     syncCodeTable = new SyncCodeTable({
+//       product: 0,
+//       movement: 0,
+//       invoice: 0,
+//       payment: 0,
+//       sale: 0,
+//       cashRegister: 0,
+//       client: 0,
+//     });
+//     await syncCodeTable.save();
+//   }
+//   return syncCodeTable;
+// };
+const updateAndGetSyncCode = async (tableName, numberOfDocuments) => {
   const $inc = {};
-  $inc[table] = numberOfDocuments;
+  $inc.syncCodeMax = numberOfDocuments;
   let syncCodeTable = await SyncCodeTable.findOneAndUpdate(
-    {},
+    { tableName },
     { $inc },
     { new: true, upsert: true }
   );
-
-  return syncCodeTable[table];
+  return syncCodeTable.syncCodeMax;
 };
 module.exports.generateFields = (fields) => {
   fields.status = String;
