@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { generateFields } = require("../utils/sync");
 const Schema = mongoose.Schema;
 
 const MovementSchema = new Schema(
