@@ -3,8 +3,8 @@ const Schema = mongoose.Schema;
 
 const MovementSchema = new Schema(
   {
-    product: { type: mongoose.Schema.Types.ObjectId, ref: "product" },
-    code: { type: Number, required: true},
+    product: { type: String },
+    code: { type: Number, required: true },
     uuid: { type: String, required: true, unique: true },
     quantity: Number,
     price: Number,
