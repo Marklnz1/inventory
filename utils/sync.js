@@ -1,4 +1,4 @@
-const SyncCodeTable = require("../models/SyncMetadata");
+const SyncMetadata = require("../models/SyncMetadata");
 const util = require("util");
 
 module.exports.list_sync = async (Model, req, res, next) => {
@@ -108,7 +108,7 @@ function getRecentFields(field, doc, docDB) {
 const updateAndGetSyncCode = async (tableName, numberOfDocuments) => {
   const $inc = {};
   $inc.syncCodeMax = numberOfDocuments;
-  let syncCodeTable = await SyncCodeTable.findOneAndUpdate(
+  let syncCodeTable = await SyncMetadata.findOneAndUpdate(
     { tableName },
     { $inc },
     { new: true, upsert: true }
