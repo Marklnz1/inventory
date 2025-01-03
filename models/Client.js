@@ -1,13 +1,12 @@
 const mongoose = require("mongoose");
-const { generateFields } = require("../utils/sync");
+const { generateFields } = require("../synchronization/sync");
 const Schema = mongoose.Schema;
-
 const ClientSchema = new Schema(
   generateFields({
-    dni: String,
-    name: String,
-    phone: String,
-    email: String,
+    name: { type: String, default: "" },
+    dni: { type: String, default: "" },
+    email: { type: String, default: "" },
+    phone: { type: String, default: "" },
   }),
   { timestamps: true }
 );

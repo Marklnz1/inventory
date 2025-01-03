@@ -1,20 +1,15 @@
 const mongoose = require("mongoose");
-const { generateFields } = require("../utils/sync");
+const { generateFields } = require("../synchronization/sync");
 const Schema = mongoose.Schema;
-// Inserted: Insertado
-// Deleted: Eliminado
-
 const ProductSchema = new Schema(
   generateFields({
-    name: String,
-    price: Number,
-    description: String,
-    stock: Number,
-    maxDiscount: Number,
+    name: { type: String, default: "" },
+    price: { type: Number, default: 0 },
+    description: { type: String, default: "" },
+    stock: { type: Number, default: 0 },
+    maxDiscount: { type: Number, default: 0 },
   }),
   { timestamps: true }
 );
-// ProductSchema.index({ name: "text" });
 const Product = mongoose.model("product", ProductSchema, "product");
-// Product.createIndexes();
 module.exports = Product;

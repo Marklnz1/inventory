@@ -1,17 +1,16 @@
 const mongoose = require("mongoose");
-const mongodb = require("../utils/mongodb");
 
 const Schema = mongoose.Schema;
 
-const userSchema = new Schema(
+const UserSchema = new Schema(
   {
     username: String,
     password: String,
     role: String,
-    groupId: String,
+    version: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
-const db = mongodb.useDb("mtc_app", { useCache: true });
-const User = db.model("user", userSchema, "user");
+const User = mongoose.model("user", UserSchema, "user");
+
 module.exports = User;

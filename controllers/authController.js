@@ -1,42 +1,46 @@
+const bcrypt = require("bcrypt");
 const User = require("../models/User");
 const utils = require("../utils/auth");
-const bcrypt = require("bcrypt");
+const { inspect } = require("util");
+
+// module.exports.create = async (req, res) => {
+//   await User.findOneAndUpdate(
+//     { username: "user4" },
+//     { role: "employee", password: await utils.getPasswordBcrypt("12345") },
+//     { upsert: true }
+//   );
+//   res.json("cambiado");
+// };
 
 module.exports.verifyUser = async (req, res, next) => {
-  if (!res.locals.user.username) {
-    res.status(404).json({ error: "404" });
+  // next();
+  // return;
+  console.log("EL EXTRACT ES " + inspect(res.locals.user));
+  if (res.locals.user?.role != "employee") {
+    res.status(404).json({ error: "_404_" });
   } else {
     next();
   }
 };
+
 module.exports.login_post = async (req, res) => {
   const userData = req.body;
   const userBD = await User.findOne({ username: userData.username });
-
+  console.log(
+    "la data es " + inspect(userData) + " se encontro " + inspect(userBD)
+  );
   if (
     userBD != null &&
     (await bcrypt.compare(userData.password, userBD.password))
   ) {
-    //  utils.createToken({"username":userData.username})
-    utils.configToken(res, { username: userBD.username });
-    res.status(201).json({ message: "usuario logeado correctamente" });
+    const token = utils.createToken({
+      username: userBD.username,
+      version: userBD.version,
+    });
+    res.status(201).json({ token });
   } else {
     res.status(400).json({
-      error: "Datos invalidos",
+      error: "Usuario o contraseña incorrectos. Inténtalo de nuevo.",
     });
-  }
-
-  // console.log("Se logeo el usuario : ", req.body);
-};
-
-module.exports.login_get = async (req, res, next) => {
-  res.render("login/index");
-};
-module.exports.logout_get = (req, res, next) => {
-  if (res.locals.user) {
-    res.cookie("jwt", "", { maxAge: 1 });
-    res.redirect("/");
-  } else {
-    res.redirect("/");
   }
 };

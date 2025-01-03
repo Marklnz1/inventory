@@ -1,26 +1,18 @@
-
 const bcrypt = require("bcrypt");
 const utils = require("../utils/auth");
 const jwt = require("jsonwebtoken");
 
-module.exports.getPasswordBcrypt=async (password)=> {
-    const salt = await bcrypt.genSalt();
-    return bcrypt.hash(password, salt);
-}
-const maxTime = 30000;
-
-module.exports.createToken = (data) => {
-    return jwt.sign(data, "efe", {
-        expiresIn: maxTime,
-    });
+module.exports.getPasswordBcrypt = async (password) => {
+  const salt = await bcrypt.genSalt();
+  return bcrypt.hash(password, salt);
 };
 
-module.exports.configToken = (res,data) => {
-    const token = utils.createToken(data);
-    res.cookie("jwt", token, {
-      httpOnly: true,
-      maxAge: maxTime * 1000,
-      sameSite: "none",
-      secure: "false"
-    });
+const days = 1000;
+
+const maxTime = days * 24 * 60 * 60 * 1000;
+
+module.exports.createToken = (data) => {
+  return jwt.sign(data, process.env.TOKEN_LOGIN_KEY, {
+    expiresIn: maxTime,
+  });
 };

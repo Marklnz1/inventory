@@ -1,19 +1,13 @@
 const mongoose = require("mongoose");
+const { generateFields } = require("../synchronization/sync");
 const Schema = mongoose.Schema;
-
 const CashRegisterSchema = new Schema(
-  {
-    code: { type: Number, required: true },
-    uuid: { type: String, required: true, unique: true },
-    state: String,
-    startingAmount: Number,
-    closedAt: Date,
-    efective: Number,
-    yape: Number,
-    transference: Number,
-    createdAtLocal: Date,
-    updatedAtLocal: Date,
-  },
+  generateFields({
+    startingAmount: { type: Number, default: 0 },
+    isOpen: { type: Boolean, default: false },
+    closetAt: { type: Number, default: 0 },
+    cash: { type: Number, default: 0 },
+  }),
   { timestamps: true }
 );
 const CashRegister = mongoose.model(
