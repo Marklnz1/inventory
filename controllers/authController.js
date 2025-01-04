@@ -3,14 +3,14 @@ const User = require("../models/User");
 const utils = require("../utils/auth");
 const { inspect } = require("util");
 
-// module.exports.create = async (req, res) => {
-//   await User.findOneAndUpdate(
-//     { username: "user4" },
-//     { role: "employee", password: await utils.getPasswordBcrypt("12345") },
-//     { upsert: true }
-//   );
-//   res.json("cambiado");
-// };
+module.exports.create = async (req, res) => {
+  await User.findOneAndUpdate(
+    { username: "user4" },
+    { role: "employee", password: await utils.getPasswordBcrypt("12345") },
+    { upsert: true }
+  );
+  res.json("cambiado");
+};
 
 module.exports.verifyUser = async (req, res, next) => {
   // next();

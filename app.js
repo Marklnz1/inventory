@@ -3,7 +3,6 @@ const PORT = process.env.PORT || 4000;
 const MONGODB_URL = process.env.MONGODB_URL;
 const extractUser = require("./middleware/extractUser");
 const Client = require("./models/Client");
-const authController = require("./controllers/authController");
 const SyncServer = require("./synchronization/SyncServer");
 const CashRegister = require("./models/CashRegister");
 const Invoice = require("./models/Invoice");

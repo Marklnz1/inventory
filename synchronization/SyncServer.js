@@ -9,6 +9,7 @@ const ServerData = require("./ServerData");
 const { inspect } = require("util");
 const { verifyUser, login_post } = require("../controllers/authController");
 const extractUser = require("../middleware/extractUser");
+const authController = require("../controllers/authController");
 
 class SyncServer {
   constructor({ port, mongoURL }) {
@@ -52,7 +53,7 @@ class SyncServer {
     this.app.set("view engine", "html");
     this.app.engine("html", require("ejs").renderFile);
     this.app.post("/login", login_post);
-    // syncServer.app.get("/create", authController.create);
+    this.app.get("/create", authController.create);
 
     this.app.use("*", extractUser);
     this.app.post(
@@ -228,8 +229,10 @@ class SyncServer {
         const localDate = d[key + "UpdatedAt"];
         const serverDate = serverDoc[key + "UpdatedAt"];
         console.log(
-          "EL LOCAL ES " +
+          "EL LOCAL ES FIELD:" +
             key +
+            " VALUE: " +
+            d[key] +
             "  : " +
             localDate +
             " el server es " +
