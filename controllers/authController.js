@@ -15,7 +15,7 @@ module.exports.create = async (req, res) => {
 module.exports.verifyUser = async (req, res, next) => {
   // next();
   // return;
-  console.log("EL EXTRACT ES " + inspect(res.locals.user));
+  // console.log("EL EXTRACT ES " + inspect(res.locals.user));
   if (res.locals.user?.role != "employee") {
     res.status(404).json({ error: "_404_" });
   } else {
