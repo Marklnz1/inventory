@@ -16,7 +16,7 @@ module.exports = async (req, res, next) => {
     if (token) {
       const decodedToken = jwt.verify(token, process.env.TOKEN_LOGIN_KEY);
       const user = await User.findOne({ username: decodedToken.username });
-      console.log("el user es " + inspect(user));
+      // console.log("el user es " + inspect(user));
       if (user != null) {
         if (user.version == decodedToken.version) {
           res.locals.user = {
