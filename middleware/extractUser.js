@@ -6,7 +6,6 @@ module.exports = async (req, res, next) => {
   try {
     const authHeader = req.headers["authorization"];
     let token = null;
-    console.log("el authHeader es " + authHeader);
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const parts = authHeader.split(" ");
       if (parts.length === 2) {
