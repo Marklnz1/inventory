@@ -214,6 +214,7 @@ class SyncServer {
       // );
 
       if (serverDoc == null) {
+        // keys = [];
         continue;
       }
       const keys = Object.keys(d);
