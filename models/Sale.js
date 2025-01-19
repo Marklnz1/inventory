@@ -3,7 +3,7 @@ const { generateFields } = require("../synchronization/sync");
 const Schema = mongoose.Schema;
 const SaleSchema = new Schema(
   generateFields({
-    clientDni: { type: String, default: "" },
+    client: { type: String, default: "" },
     movement: { type: String, default: "" },
     invoice: { type: String, default: "" },
     discount: { type: Number, default: 0 },

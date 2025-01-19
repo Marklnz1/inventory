@@ -19,13 +19,16 @@ class LightQueue {
     }
 
     this.isProcessing = true;
-    const { task, data } = this.queue.shift();
+    const { task, data, error } = this.queue.shift();
     try {
       await task();
       await this.onEndTask(data, false);
     } catch (err) {
       console.error("Error processing task:", err);
       await this.onEndTask(data, true);
+      if (error) {
+        error();
+      }
     }
 
     setImmediate(() => this.process());

@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { generateFields } = require("../synchronization/sync");
+const { generateFields } = require("./sync");
 const Schema = mongoose.Schema;
 const ChangeSchema = new Schema(
   {

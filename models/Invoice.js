@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const InvoiceSchema = new Schema(
   generateFields({
     cashRegister: { type: String, default: "" },
-    clientDni: { type: String, default: "" },
+    client: { type: String, default: "" },
   }),
   { timestamps: true }
 );
