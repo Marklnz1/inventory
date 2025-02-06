@@ -7,6 +7,7 @@ const ClientSchema = new Schema(
     dni: { type: String, default: "" },
     email: { type: String, default: "" },
     phone: { type: String, default: "" },
+    userUuid: { required: true, type: String },
   }),
   { timestamps: true }
 );

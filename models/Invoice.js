@@ -5,6 +5,7 @@ const InvoiceSchema = new Schema(
   generateFields({
     cashRegister: { type: String, default: "" },
     client: { type: String, default: "" },
+    userUuid: { required: true, type: String },
   }),
   { timestamps: true }
 );

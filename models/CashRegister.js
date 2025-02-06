@@ -7,6 +7,7 @@ const CashRegisterSchema = new Schema(
     isOpen: { type: Boolean, default: false },
     closedAt: { type: Number, default: 0 },
     cash: { type: Number, default: 0 },
+    userUuid: { required: true, type: String },
   }),
   { timestamps: true }
 );

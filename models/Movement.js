@@ -7,6 +7,11 @@ const MovementSchema = new Schema(
     quantity: { type: Number, default: 0 },
     price: { type: Number, default: 0 },
     description: { type: String, default: "" },
+    userUuid: { required: true, type: String },
+    originType: { required: true, type: String },
+    origin: { required: true, type: String },
+    destinationType: { required: true, type: String },
+    destination: { required: true, type: String },
   }),
   { timestamps: true }
 );

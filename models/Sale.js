@@ -7,6 +7,7 @@ const SaleSchema = new Schema(
     movement: { type: String, default: "" },
     invoice: { type: String, default: "" },
     discount: { type: Number, default: 0 },
+    userUuid: { required: true, type: String },
   }),
   { timestamps: true }
 );

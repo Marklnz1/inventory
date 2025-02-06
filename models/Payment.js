@@ -8,6 +8,7 @@ const PaymentSchema = new Schema(
     amount: { type: Number, default: 0 },
     method: { type: String, default: "" },
     description: { type: String, default: "" },
+    userUuid: { required: true, type: String },
   }),
   { timestamps: true }
 );

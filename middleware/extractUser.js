@@ -20,9 +20,11 @@ module.exports = async (req, res, next) => {
       if (user != null) {
         if (user.version == decodedToken.version) {
           res.locals.user = {
-            userId: user._id,
+            id: user._id,
+            uuid: user.uuid,
             username: user.username,
             role: user.role,
+            warehouse: user.warehouse,
           };
         }
       }

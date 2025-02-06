@@ -25,10 +25,10 @@ module.exports.verifyUser = async (req, res, next) => {
 
 module.exports.login_post = async (req, res) => {
   const userData = req.body;
-  const userBD = await User.findOne({ username: userData.username });
-  console.log(
-    "la data es " + inspect(userData) + " se encontro " + inspect(userBD)
-  );
+  const userBD = await User.findOne({
+    username: userData.username?.toUpperCase(),
+  });
+
   if (
     userBD != null &&
     (await bcrypt.compare(userData.password, userBD.password))
@@ -37,7 +37,13 @@ module.exports.login_post = async (req, res) => {
       username: userBD.username,
       version: userBD.version,
     });
-    res.status(201).json({ token });
+    res.status(201).json({
+      uuid: userBD.uuid,
+      username: userBD.username,
+      role: userBD.role,
+      warehouse: userBD.warehouse,
+      token,
+    });
   } else {
     res.status(400).json({
       error: "Usuario o contraseña incorrectos. Inténtalo de nuevo.",
