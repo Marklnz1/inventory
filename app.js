@@ -20,6 +20,7 @@ const bcrypt = require("bcrypt");
 const { v7: uuidv7 } = require("uuid");
 const utils = require("./utils/auth");
 const LastSeen = require("./models/LastSeen");
+const UserWarehouse = require("./models/UserWarehouse");
 
 const users = {
   EMPLOYEE: {
@@ -33,6 +34,7 @@ const users = {
     product: ["read"],
     sale: ["write", "read"],
     warehouse: ["read"],
+    userWarehouse: ["read"],
     lastSeen: ["write", "read"],
   },
   INVENTORY_MANAGER: {
@@ -46,6 +48,7 @@ const users = {
     product: ["write", "read"],
     sale: ["read"],
     warehouse: ["read"],
+    userWarehouse: ["read"],
     lastSeen: ["write", "read"],
   },
 };
@@ -108,7 +111,10 @@ SyncServer.syncPost({
       return {};
     }
     return {
-      $or: [{ origin: user.warehouse }, { destination: user.warehouse }],
+      $or: [
+        { origin: { $in: user.warehouses } },
+        { destination: { $in: user.warehouses } },
+      ],
     };
   },
 });
@@ -147,13 +153,33 @@ SyncServer.syncPost({
   },
 });
 SyncServer.syncPost({ model: Warehouse, tableName: "warehouse" });
+SyncServer.syncPost({ model: UserWarehouse, tableName: "userWarehouse" });
+
 SyncServer.syncPost({
   model: User,
   tableName: "user",
   excludedFields: ["password", "version"],
   onCreatePreviousServer: async (doc) => {
     console.log("el password es ", doc.password);
+    doc.uuid = uuidv7();
     doc.password = await utils.getPasswordBcrypt(doc.password);
+    await SyncServer.addTask({
+      tableName: "userWarehouse",
+      useTransaction: true,
+      task: async (session) => {
+        const promises = [];
+        for (const warehouseUuid of doc.warehouses) {
+          promises.push(
+            SyncServer.createOrGet({
+              tableName: "userWarehouse",
+              doc: { user: doc.uuid, warehouse: warehouseUuid },
+              session,
+            })
+          );
+        }
+        await Promise.all(promises);
+      },
+    });
   },
 });
 

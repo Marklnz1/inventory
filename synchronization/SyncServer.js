@@ -144,7 +144,7 @@ class SyncServer {
                 ? {}
                 : filterLocalResponse(req, res)),
             };
-
+            console.log("EL FINDDATA ES ", inspect(findData, true, 99));
             let docs = await model
               .find(findData)
               .select(selectFields)
@@ -184,10 +184,12 @@ class SyncServer {
           if (onCreatePreviousServer) {
             await onCreatePreviousServer(req.body);
           }
-          await this.databaseQueueMap[tableName].createOrGet(req.body);
+          await this.databaseQueueMap[tableName].createOrGetTransaction(
+            req.body
+          );
           res.json({ msg: "ok" });
         } catch (error) {
-          res.json({ error });
+          res.json({ error: error.toString() });
         }
       }
     );
@@ -294,8 +296,28 @@ class SyncServer {
   async instantReplacement({ tableName, doc, filter }) {
     await this.databaseQueueMap[tableName].instantReplacement({ doc, filter });
   }
-  async createOrGet({ tableName, doc }) {
-    return await this.databaseQueueMap[tableName].createOrGet(doc);
+  async createOrGetTransaction({ tableName, doc, filterFields }) {
+    await this.databaseQueueMap[tableName].createOrGetTransaction(
+      doc,
+      filterFields
+    );
+  }
+  async createOrGet({ tableName, doc, filterFields, session }) {
+    await this.databaseQueueMap[tableName].createOrGet({
+      doc,
+      filterFields,
+      session,
+    });
+  }
+  async addTask({ tableName, task, useTransaction }) {
+    // console.log(
+    //   "la tabla es ",
+    //   tableName,
+    //   " LA BASE ES ",
+    //   Object.keys(this.databaseQueueMap),
+    //   this.databaseQueueMap[tableName]
+    // );
+    await this.databaseQueueMap[tableName].addTask({ task, useTransaction });
   }
 }
 

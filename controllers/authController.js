@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt");
 const User = require("../models/User");
 const utils = require("../utils/auth");
 const { inspect } = require("util");
+const UserWarehouse = require("../models/UserWarehouse");
+const Warehouse = require("../models/Warehouse");
 
 module.exports.create = async (req, res) => {
   await User.findOneAndUpdate(
@@ -37,11 +39,20 @@ module.exports.login_post = async (req, res) => {
       username: userBD.username,
       version: userBD.version,
     });
+    var userWarehouses;
+    if (userBD.role.toUpperCase() == "ADMIN") {
+      userWarehouses = await UserWarehouse.find();
+    } else {
+      userWarehouses = await UserWarehouse.find({ user: userBD.uuid });
+    }
+    var warehouses = await Warehouse.find({
+      uuid: { $in: userWarehouses.map((uw) => uw.warehouse) },
+    });
     res.status(201).json({
       uuid: userBD.uuid,
       username: userBD.username,
       role: userBD.role,
-      warehouse: userBD.warehouse,
+      warehouses: warehouses,
       token,
     });
   } else {

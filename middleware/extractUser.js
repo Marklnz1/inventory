@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { inspect } = require("util");
+const UserWarehouse = require("../models/UserWarehouse");
 
 module.exports = async (req, res, next) => {
   try {
@@ -16,6 +17,8 @@ module.exports = async (req, res, next) => {
     if (token) {
       const decodedToken = jwt.verify(token, process.env.TOKEN_LOGIN_KEY);
       const user = await User.findOne({ username: decodedToken.username });
+      const userWarehouses = await UserWarehouse.find({ user: user.uuid });
+
       // console.log("el user es " + inspect(user));
       if (user != null) {
         if (user.version == decodedToken.version) {
@@ -24,7 +27,7 @@ module.exports = async (req, res, next) => {
             uuid: user.uuid,
             username: user.username,
             role: user.role,
-            warehouse: user.warehouse,
+            warehouses: userWarehouses.map((uw) => uw.warehouse),
           };
         }
       }

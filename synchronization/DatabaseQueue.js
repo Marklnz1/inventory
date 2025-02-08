@@ -118,7 +118,69 @@ class DatabaseQueue {
       });
     });
   }
-  async createOrGet(doc) {
+
+  async createOrGet({ doc, filterFields = ["uuid"], session }) {
+    if (filterFields.length == 0) {
+      return;
+    }
+    doc = this.completeFieldsToInsert(doc);
+
+    doc.syncCode = await this.updateAndGetSyncCode(this.tableName, session);
+    const filter = {};
+    for (const f of filterFields) {
+      filter[f] = doc[f];
+    }
+    const updatedDocument = await this.Model.findOneAndUpdate(
+      filter,
+      {
+        $setOnInsert: doc,
+      },
+      { session, new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+  }
+  async addTask({ task, useTransaction }) {
+    if (useTransaction) {
+      return new Promise((resolve, reject) => {
+        this.lightQueue.add(async () => {
+          try {
+            const session = await mongoose.startSession();
+            try {
+              session.startTransaction();
+              await task(session);
+              await session.commitTransaction();
+              resolve();
+            } catch (error) {
+              await session.abortTransaction();
+              reject(error);
+              console.error(
+                "Error en la transacción PERSONALIZADA, se ha revertido:",
+                error
+              );
+            } finally {
+              await session.endSession();
+            }
+          } catch (error) {
+            reject();
+          }
+        });
+      });
+    } else {
+      return new Promise((resolve, reject) => {
+        this.lightQueue.add(async () => {
+          try {
+            await task();
+            resolve();
+          } catch (error) {
+            reject();
+          }
+        });
+      });
+    }
+  }
+  async createOrGetTransaction(doc, filterFields = ["uuid"]) {
+    if (filterFields.length == 0) {
+      return;
+    }
     // console.log("CREATEORGET DATOS ANTES ", inspect(doc, true, 99));
 
     doc = this.completeFieldsToInsert(doc);
@@ -137,8 +199,12 @@ class DatabaseQueue {
             this.tableName,
             session
           );
+          const filter = {};
+          for (const f of filterFields) {
+            filter[f] = doc[f];
+          }
           const updatedDocument = await this.Model.findOneAndUpdate(
-            { uuid: doc.uuid },
+            filter,
             {
               $setOnInsert: doc,
             },
