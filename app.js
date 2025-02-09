@@ -24,6 +24,7 @@ const UserWarehouse = require("./models/UserWarehouse");
 
 const users = {
   EMPLOYEE: {
+    user: ["read"],
     serverData: ["read"],
     verify: ["read"],
     cashRegister: ["write", "read"],
@@ -38,6 +39,7 @@ const users = {
     lastSeen: ["write", "read"],
   },
   INVENTORY_MANAGER: {
+    user: ["read"],
     serverData: ["read"],
     verify: ["read"],
     cashRegister: ["read"],
@@ -87,7 +89,7 @@ SyncServer.syncPost({
     if (user.role == "ADMIN") {
       return {};
     }
-    return { userUuid: user.uuid };
+    return { warehouseUuid: { $in: user.warehouses } };
   },
 });
 SyncServer.syncPost({ model: Client, tableName: "client" });
@@ -99,7 +101,7 @@ SyncServer.syncPost({
     if (user.role == "ADMIN") {
       return {};
     }
-    return { userUuid: user.uuid };
+    return { warehouseUuid: { $in: user.warehouses } };
   },
 });
 SyncServer.syncPost({
@@ -126,7 +128,7 @@ SyncServer.syncPost({
     if (user.role == "ADMIN") {
       return {};
     }
-    return { userUuid: user.uuid };
+    return { warehouseUuid: { $in: user.warehouses } };
   },
 });
 SyncServer.syncPost({
@@ -149,16 +151,33 @@ SyncServer.syncPost({
     if (user.role == "ADMIN") {
       return {};
     }
-    return { userUuid: user.uuid };
+    return { warehouseUuid: { $in: user.warehouses } };
   },
 });
 SyncServer.syncPost({ model: Warehouse, tableName: "warehouse" });
-SyncServer.syncPost({ model: UserWarehouse, tableName: "userWarehouse" });
+SyncServer.syncPost({
+  model: UserWarehouse,
+  tableName: "userWarehouse",
+  filterLocalResponse: (req, res) => {
+    const user = res.locals.user;
+    if (user.role == "ADMIN") {
+      return {};
+    }
+    return { user: user.uuid };
+  },
+});
 
 SyncServer.syncPost({
   model: User,
   tableName: "user",
   excludedFields: ["password", "version"],
+  filterLocalResponse: (req, res) => {
+    const user = res.locals.user;
+    if (user.role == "ADMIN") {
+      return {};
+    }
+    return { userUuid: user.uuid };
+  },
   onCreatePreviousServer: async (doc) => {
     console.log("el password es ", doc.password);
     doc.uuid = uuidv7();
@@ -167,17 +186,13 @@ SyncServer.syncPost({
       tableName: "userWarehouse",
       useTransaction: true,
       task: async (session) => {
-        const promises = [];
         for (const warehouseUuid of doc.warehouses) {
-          promises.push(
-            SyncServer.createOrGet({
-              tableName: "userWarehouse",
-              doc: { user: doc.uuid, warehouse: warehouseUuid },
-              session,
-            })
-          );
+          await SyncServer.createOrGet({
+            tableName: "userWarehouse",
+            doc: { user: doc.uuid, warehouse: warehouseUuid },
+            session,
+          });
         }
-        await Promise.all(promises);
       },
     });
   },

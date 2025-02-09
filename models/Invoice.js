@@ -6,6 +6,7 @@ const InvoiceSchema = new Schema(
     cashRegister: { type: String, default: "" },
     client: { type: String, default: "" },
     userUuid: { required: true, type: String },
+    warehouseUuid: { required: true, type: String },
   }),
   { timestamps: true }
 );

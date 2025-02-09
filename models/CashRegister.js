@@ -8,6 +8,7 @@ const CashRegisterSchema = new Schema(
     closedAt: { type: Number, default: 0 },
     cash: { type: Number, default: 0 },
     userUuid: { required: true, type: String },
+    warehouseUuid: { required: true, type: String },
   }),
   { timestamps: true }
 );
