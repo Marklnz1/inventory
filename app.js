@@ -29,7 +29,7 @@ const ProductTag = require("./models/ProductTag");
 const QuantityPromo = require("./models/QuantityPromo");
 const RangeDiscount = require("./models/RangeDiscount");
 const RangeReservation = require("./models/RangeReservation");
-const Tag = require("./models/tag");
+const Tag = require("./models/Tag");
 
 const users = {
   EMPLOYEE: {
