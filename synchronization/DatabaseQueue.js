@@ -15,21 +15,7 @@ class DatabaseQueue {
     this.onInsertLocalAfter = onInsertLocalAfter;
     this.onInsertLocalPrevious = onInsertLocalPrevious;
 
-    this.lightQueue = new LightQueue(async ({ tempCode, error }) => {
-      console.log("SE PROCESO EL TEMPCODE", tempCode, " ERROR_STATUS:", error);
-
-      if (tempCode != null) {
-        if (!error) {
-          await Change.deleteMany({
-            tempCode,
-          });
-        }
-
-        await this.updateProcessedTempCode(tempCode);
-      }
-
-      this.io.emit("serverChanged");
-    });
+    this.lightQueue = new LightQueue();
   }
   async updateProcessedTempCode(tempCode) {
     await ServerData.findOneAndUpdate(
@@ -38,7 +24,7 @@ class DatabaseQueue {
       { upsert: true, setDefaultsOnInsert: true }
     );
   }
-  addTaskDataInQueue({ tempCode, docs }) {
+  async addTaskDataInQueue({ docs }) {
     const task = async () => {
       const session = await mongoose.startSession();
 
@@ -51,10 +37,11 @@ class DatabaseQueue {
             session,
           });
         }
-        const documentsCreatedLocal = await this.insertToServer({
-          docs,
-          session,
-        });
+        const { documentsCreatedLocal, documentsUpdates, syncCodeMax } =
+          await this.insertToServer({
+            docs,
+            session,
+          });
         await session.commitTransaction();
         if (this.onInsertLocalAfter != null) {
           try {
@@ -68,17 +55,18 @@ class DatabaseQueue {
             console.log("onInsertAfter ERROR (sync):", error);
           }
         }
-        return { tempCode, error: false };
+        // console.log("devolviendoOOOOO", documentsCreatedLocal);
+        return { docs: documentsUpdates, syncCodeMax };
       } catch (error) {
         await session.abortTransaction();
         console.error("Error en la transacción, se ha revertido:", error);
-        return { tempCode, error: true };
+        throw error;
       } finally {
         await session.endSession();
       }
     };
 
-    this.lightQueue.add(task);
+    return await this.lightQueue.add(task);
   }
   async instantReplacement({ doc, filter }) {
     // console.log("INSTANT DATOS ANTES ", inspect(doc, true, 99));
@@ -222,6 +210,10 @@ class DatabaseQueue {
       });
     });
   }
+  async getCurrentSyncCode(tableName) {
+    let syncCodeTable = await SyncMetadata.findOne({ tableName });
+    return syncCodeTable?.syncCodeMax ?? 0;
+  }
   async updateAndGetSyncCode(tableName, session = null) {
     const options = { new: true, upsert: true };
     if (session) {
@@ -236,12 +228,10 @@ class DatabaseQueue {
   }
   async insertToServer({ docs, session }) {
     const newDocs = [];
-    const syncCode = await this.updateAndGetSyncCode(this.tableName, session);
     let docUuidSet = new Set();
     for (let d of docs) {
       this.completeFieldsToInsert(d);
       docUuidSet.add(d.uuid);
-      d.syncCode = syncCode;
     }
 
     const serverDocs = await this.Model.find({
@@ -282,13 +272,20 @@ class DatabaseQueue {
       }
     }
     docs = docs.filter((doc) => !deleteDocs.includes(doc));
-    // console.log("se analizaran " + docs.length);
     if (docs.length == 0) {
-      return;
-    }
-    // console.log("ESPERANDO 10 SEGUNDOS");
-    // await new Promise((resolve) => setTimeout(resolve, 5000));
+      const syncCode = await this.getCurrentSyncCode(this.tableName);
 
+      return {
+        documentsCreatedLocal: [],
+        documentsUpdates: [],
+        syncCodeMax: syncCode,
+      };
+    }
+    const syncCode = await this.updateAndGetSyncCode(this.tableName, session);
+
+    for (let d of docs) {
+      d.syncCode = syncCode;
+    }
     await this.Model.bulkWrite(
       docs.map((doc) => {
         return {
@@ -302,7 +299,11 @@ class DatabaseQueue {
       }),
       { session }
     );
-    return newDocs;
+    return {
+      documentsCreatedLocal: newDocs,
+      documentsUpdates: docs,
+      syncCodeMax: syncCode,
+    };
   }
   completeFieldsToInsert(fields) {
     // if (!fields.insertedAt) {

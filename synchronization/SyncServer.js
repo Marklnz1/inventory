@@ -144,7 +144,7 @@ class SyncServer {
                 ? {}
                 : filterLocalResponse(req, res)),
             };
-            console.log("EL FINDDATA ES ", inspect(findData, true, 99));
+            // console.log("EL FINDDATA ES ", inspect(findData, true, 99));
             let docs = await model
               .find(findData)
               .select(selectFields)
@@ -201,21 +201,13 @@ class SyncServer {
       async (req, res, next) => {
         this.codeQueue.add(async () => {
           try {
-            const tempCode = await this.updateAndGetTempCode();
-            const change = new Change({
-              tableName: tableName,
-              tempCode,
-              status: "inserted",
-            });
-            await change.save();
-
-            this.databaseQueueMap[tableName].addTaskDataInQueue({
+            var { docs, syncCodeMax } = await this.databaseQueueMap[
+              tableName
+            ].addTaskDataInQueue({
               docs: req.body["docs"],
-              tempCode,
             });
-            console.log("SE DEVUELVE EL TEMPCODE: " + tempCode);
-
-            res.status(200).json({ tempCode });
+            // console.log("devolviendo ", syncCodeMax, docs);
+            res.status(200).json({ docs, syncCodeMax });
           } catch (error) {
             res.status(400).json({ error: error.message });
           }

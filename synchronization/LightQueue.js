@@ -1,15 +1,24 @@
 class LightQueue {
-  constructor(onEndTask) {
-    this.onEndTask = onEndTask;
+  constructor() {
     this.queue = [];
     this.isProcessing = false;
   }
 
   add(task) {
-    this.queue.push(task);
-    if (!this.isProcessing) {
-      this.process();
-    }
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const result = await task();
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      if (!this.isProcessing) {
+        this.process();
+      }
+    });
   }
 
   async process() {
@@ -21,11 +30,8 @@ class LightQueue {
     this.isProcessing = true;
     const task = this.queue.shift();
 
-    const response = await task();
+    await task();
 
-    if (this.onEndTask != null) {
-      await this.onEndTask(response ?? {});
-    }
     setImmediate(() => this.process());
   }
 }

@@ -3,13 +3,13 @@ const { generateFields } = require("../synchronization/sync");
 const Schema = mongoose.Schema;
 const PaymentSchema = new Schema(
   generateFields({
-    invoice: { type: String, default: "" },
-    client: { type: String, default: "" },
-    amount: { type: Number, default: 0 },
-    method: { type: String, default: "" },
-    description: { type: String, default: "" },
+    invoice: { type: String },
+    client: { type: String },
+    amount: { type: Number, required: true },
+    method: { type: String, required: true },
+    description: { type: String },
     userUuid: { required: true, type: String },
-    warehouseUuid: { type: String, default: "" },
+    warehouseUuid: { type: String },
   }),
   { timestamps: true }
 );

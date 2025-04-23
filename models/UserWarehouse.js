@@ -5,8 +5,8 @@ const Schema = mongoose.Schema;
 
 const UserWarehouseSchema = new Schema(
   generateFields({
-    user: { type: String, default: "" },
-    warehouse: { type: String, default: "" },
+    user: { type: String, required: true },
+    warehouse: { type: String, required: true },
   }),
   { timestamps: true }
 );

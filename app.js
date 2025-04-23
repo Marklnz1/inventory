@@ -21,37 +21,64 @@ const { v7: uuidv7 } = require("uuid");
 const utils = require("./utils/auth");
 const LastSeen = require("./models/LastSeen");
 const UserWarehouse = require("./models/UserWarehouse");
+const Campaign = require("./models/Campaign");
+const Category = require("./models/Category");
+const DraftProduct = require("./models/DraftProduct");
+const PaymentMethod = require("./models/PaymentMethod");
+const ProductTag = require("./models/ProductTag");
+const QuantityPromo = require("./models/QuantityPromo");
+const RangeDiscount = require("./models/RangeDiscount");
+const RangeReservation = require("./models/RangeReservation");
+const Tag = require("./models/tag");
 
 const users = {
   EMPLOYEE: {
-    user: ["read"],
-    serverData: ["read"],
-    verify: ["read"],
+    campaign: ["write", "read"],
     cashRegister: ["write", "read"],
+    category: ["write", "read"],
     client: ["write", "read"],
+    draftProduct: ["write", "read"],
     invoice: ["write", "read"],
+    lastSeen: ["write", "read"],
     movement: ["write", "read"],
     payment: ["write", "read"],
-    product: ["read"],
+    paymentMethod: ["write", "read"],
+    product: ["write", "read"],
+    productTag: ["write", "read"],
+    quantityPromo: ["write", "read"],
+    rangeDiscount: ["write", "read"],
+    rangeReservation: ["write", "read"],
     sale: ["write", "read"],
-    warehouse: ["read"],
-    userWarehouse: ["read"],
-    lastSeen: ["write", "read"],
+    tag: ["write", "read"],
+    user: ["write", "read"],
+    userWarehouse: ["write", "read"],
+    warehouse: ["write", "read"],
+    serverData: ["write", "read"],
+    verify: ["write", "read"],
   },
   INVENTORY_MANAGER: {
-    user: ["read"],
-    serverData: ["read"],
-    verify: ["read"],
-    cashRegister: ["read"],
-    client: ["read"],
-    invoice: ["read"],
-    movement: ["write", "read"],
-    payment: ["read"],
-    product: ["write", "read"],
-    sale: ["read"],
-    warehouse: ["read"],
-    userWarehouse: ["read"],
+    campaign: ["write", "read"],
+    cashRegister: ["write", "read"],
+    category: ["write", "read"],
+    client: ["write", "read"],
+    draftProduct: ["write", "read"],
+    invoice: ["write", "read"],
     lastSeen: ["write", "read"],
+    movement: ["write", "read"],
+    payment: ["write", "read"],
+    paymentMethod: ["write", "read"],
+    product: ["write", "read"],
+    productTag: ["write", "read"],
+    quantityPromo: ["write", "read"],
+    rangeDiscount: ["write", "read"],
+    rangeReservation: ["write", "read"],
+    sale: ["write", "read"],
+    tag: ["write", "read"],
+    user: ["write", "read"],
+    userWarehouse: ["write", "read"],
+    warehouse: ["write", "read"],
+    serverData: ["write", "read"],
+    verify: ["write", "read"],
   },
 };
 SyncServer.init({
@@ -69,7 +96,7 @@ SyncServer.init({
     const user = res.locals.user;
     const role = user.role?.toUpperCase();
     const userData = users[role];
-    console.log("CUMPLE ??? ", process, type, role, userData?.[process]);
+    // console.log("CUMPLE ??? ", process, type, role, userData?.[process]);
     if (userData?.[process]?.includes(type) || role == "ADMIN") {
       if (process == "verify" && role != "ADMIN") {
         res.locals.verifyTables = Object.keys(userData);
@@ -92,6 +119,17 @@ SyncServer.syncPost({
     return { warehouseUuid: { $in: user.warehouses } };
   },
 });
+SyncServer.syncPost({ model: Campaign, tableName: "campaign" });
+SyncServer.syncPost({ model: Category, tableName: "category" });
+SyncServer.syncPost({ model: DraftProduct, tableName: "draftProduct" });
+SyncServer.syncPost({ model: PaymentMethod, tableName: "paymentMethod" });
+SyncServer.syncPost({ model: DraftProduct, tableName: "draftProduct" });
+SyncServer.syncPost({ model: ProductTag, tableName: "productTag" });
+SyncServer.syncPost({ model: QuantityPromo, tableName: "quantityPromo" });
+SyncServer.syncPost({ model: RangeDiscount, tableName: "rangeDiscount" });
+SyncServer.syncPost({ model: RangeReservation, tableName: "rangeReservation" });
+SyncServer.syncPost({ model: Tag, tableName: "tag" });
+
 SyncServer.syncPost({ model: Client, tableName: "client" });
 SyncServer.syncPost({
   model: Invoice,

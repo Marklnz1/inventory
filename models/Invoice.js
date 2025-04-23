@@ -3,10 +3,10 @@ const { generateFields } = require("../synchronization/sync");
 const Schema = mongoose.Schema;
 const InvoiceSchema = new Schema(
   generateFields({
-    cashRegister: { type: String, default: "" },
-    client: { type: String, default: "" },
+    cashRegister: { type: String },
+    client: { type: String },
     userUuid: { required: true, type: String },
-    warehouseUuid: { required: true, type: String },
+    warehouse: { type: String },
   }),
   { timestamps: true }
 );

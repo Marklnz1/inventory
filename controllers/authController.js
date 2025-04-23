@@ -27,6 +27,14 @@ module.exports.verifyUser = async (req, res, next) => {
 
 module.exports.login_post = async (req, res) => {
   const userData = req.body;
+  // console.log("el usuario ", userData);
+  if (userData.username == null || userData.password == null) {
+    res.status(400).json({
+      error: "Datos incompletos",
+    });
+
+    return;
+  }
   const userBD = await User.findOne({
     username: userData.username?.toUpperCase(),
   });
