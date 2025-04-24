@@ -43,6 +43,7 @@ class DatabaseQueue {
             session,
           });
         await session.commitTransaction();
+        this.io.emit("serverChanged");
         if (this.onInsertLocalAfter != null) {
           try {
             const result = this.onInsertLocalAfter(documentsCreatedLocal);
@@ -288,6 +289,7 @@ class DatabaseQueue {
     }
     await this.Model.bulkWrite(
       docs.map((doc) => {
+        console.log("se va a insertar", doc);
         return {
           updateOne: {
             filter: { uuid: doc.uuid },

@@ -3,11 +3,8 @@ const { generateFields } = require("../synchronization/sync");
 const Schema = mongoose.Schema;
 const CategorySchema = new Schema(
   generateFields({
-    dni: { type: String, required: true },
     name: { type: String, required: true },
-    phone: { type: String },
-    email: { type: String },
-    userUuid: { required: true, type: String },
+    description: { type: String },
   }),
   { timestamps: true }
 );
