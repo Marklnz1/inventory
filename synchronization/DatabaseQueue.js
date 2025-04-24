@@ -8,12 +8,12 @@ const Change = require("./Change");
 const { v7: uuidv7 } = require("uuid");
 
 class DatabaseQueue {
-  constructor(Model, tableName, onInsertLocalPrevious, onInsertLocalAfter, io) {
+  constructor(Model, tableName, beforeLocalInsert, onInsertLocalAfter, io) {
     this.io = io;
     this.Model = Model;
     this.tableName = tableName;
     this.onInsertLocalAfter = onInsertLocalAfter;
-    this.onInsertLocalPrevious = onInsertLocalPrevious;
+    this.beforeLocalInsert = beforeLocalInsert;
 
     this.lightQueue = new LightQueue();
   }
@@ -24,15 +24,16 @@ class DatabaseQueue {
       { upsert: true, setDefaultsOnInsert: true }
     );
   }
-  async addTaskDataInQueue({ docs }) {
+  async addTaskDataInQueue({ res, docs }) {
     const task = async () => {
       const session = await mongoose.startSession();
 
       try {
         session.startTransaction();
 
-        if (this.onInsertLocalPrevious != null) {
-          await this.onInsertLocalPrevious({
+        if (this.beforeLocalInsert != null) {
+          await this.beforeLocalInsert({
+            res,
             docs,
             session,
           });

@@ -5,6 +5,7 @@ const CategorySchema = new Schema(
   generateFields({
     name: { type: String, required: true },
     description: { type: String },
+    userUuid: { required: true, type: String },
   }),
   { timestamps: true }
 );

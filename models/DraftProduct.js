@@ -8,7 +8,7 @@ const DraftProductSchema = new Schema(
     product: { type: String },
     description: { type: String },
     userUuid: { required: true, type: String },
-    warehouseUuid: { required: true, type: String },
+    warehouse: { required: true, type: String },
   }),
   { timestamps: true }
 );

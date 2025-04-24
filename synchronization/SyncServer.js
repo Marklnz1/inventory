@@ -13,10 +13,11 @@ const { completeFieldsToInsert } = require("./sync");
 
 class SyncServer {
   databaseQueueMap = {};
-  init({ port, mongoURL, router, auth }) {
+  init({ port, mongoURL, router, auth, beforeInsertGlobal }) {
     if (auth == null) {
       auth = (req, res, next) => next();
     }
+    this.beforeInsertGlobal = beforeInsertGlobal;
     this.auth = auth;
     this.app = express();
     this.mongoURL = mongoURL;
@@ -115,16 +116,27 @@ class SyncServer {
   syncPost({
     model,
     tableName,
-    onInsertLocalPrevious,
+    beforeLocalInsert,
     onInsertLocalAfter,
     onCreatePreviousServer,
     excludedFields = [],
     filterLocalResponse,
   }) {
+    var beforeLocalInsertFinal;
+    if (this.beforeInsertGlobal != null) {
+      beforeLocalInsertFinal = async ({ res, docs, session }) => {
+        await this.beforeInsertGlobal(res, tableName, docs, session);
+        if (beforeLocalInsert != null) {
+          await beforeLocalInsert({ res, docs, session });
+        }
+      };
+    } else {
+      beforeLocalInsertFinal = beforeLocalInsert;
+    }
     this.databaseQueueMap[tableName] = new DatabaseQueue(
       model,
       tableName,
-      onInsertLocalPrevious,
+      beforeLocalInsertFinal,
       onInsertLocalAfter,
       this.io
     );
@@ -204,6 +216,7 @@ class SyncServer {
             var { docs, syncCodeMax } = await this.databaseQueueMap[
               tableName
             ].addTaskDataInQueue({
+              res,
               docs: req.body["docs"],
             });
             // console.log("devolviendo ", syncCodeMax, docs);

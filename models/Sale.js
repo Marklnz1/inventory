@@ -8,7 +8,7 @@ const SaleSchema = new Schema(
     invoice: { type: String, required: true },
     price: { type: Number, required: true },
     promotionPrice: { type: Number },
-    warehouseUuid: { required: true, type: String },
+    warehouse: { required: true, type: String },
     userUuid: { required: true, type: String },
   }),
   { timestamps: true }

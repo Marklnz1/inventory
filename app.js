@@ -106,6 +106,11 @@ SyncServer.init({
       res.json({ error: "_404" });
     }
   },
+  beforeInsertGlobal: async (res, tableName, docs, session) => {
+    for (var doc of docs) {
+      doc["userUuid"] = res.locals.user.uuid;
+    }
+  },
 });
 
 SyncServer.syncPost({
@@ -116,7 +121,7 @@ SyncServer.syncPost({
     if (user.role == "ADMIN") {
       return {};
     }
-    return { warehouseUuid: { $in: user.warehouses } };
+    return { warehouse: { $in: user.warehouses } };
   },
 });
 SyncServer.syncPost({ model: Campaign, tableName: "campaign" });
@@ -139,7 +144,7 @@ SyncServer.syncPost({
     if (user.role == "ADMIN") {
       return {};
     }
-    return { warehouseUuid: { $in: user.warehouses } };
+    return { warehouse: { $in: user.warehouses } };
   },
 });
 SyncServer.syncPost({
@@ -166,7 +171,7 @@ SyncServer.syncPost({
     if (user.role == "ADMIN") {
       return {};
     }
-    return { warehouseUuid: { $in: user.warehouses } };
+    return { warehouse: { $in: user.warehouses } };
   },
 });
 SyncServer.syncPost({
@@ -189,7 +194,7 @@ SyncServer.syncPost({
     if (user.role == "ADMIN") {
       return {};
     }
-    return { warehouseUuid: { $in: user.warehouses } };
+    return { warehouse: { $in: user.warehouses } };
   },
 });
 SyncServer.syncPost({ model: Warehouse, tableName: "warehouse" });
