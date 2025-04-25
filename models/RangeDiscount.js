@@ -5,7 +5,7 @@ const RangeDiscountSchema = new Schema(
   generateFields({
     minimumPurchase: { type: Number, required: true },
     discountType: { required: true, type: String },
-    value: { type: Number, required: true },
+    discount: { type: Number, required: true },
     userUuid: { required: true, type: String },
   }),
   { timestamps: true }
