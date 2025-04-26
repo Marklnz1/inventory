@@ -501,6 +501,8 @@ class CompiledApp {
       _1668: (x0,x1,x2,x3,x4) => x0.wrapKey(x1,x2,x3,x4),
       _1669: (x0,x1,x2) => x0.exportKey(x1,x2),
       _1670: (x0,x1,x2,x3,x4,x5) => x0.importKey(x1,x2,x3,x4,x5),
+      _1671: (x0,x1) => x0.getRandomValues(x1),
+      _1672: (x0,x1,x2,x3) => x0.encrypt(x1,x2,x3),
       _1673: (x0,x1,x2,x3) => x0.decrypt(x1,x2,x3),
       _1684: x0 => new Array(x0),
       _1686: x0 => x0.length,
