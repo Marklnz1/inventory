@@ -44,6 +44,7 @@ class DatabaseQueue {
             session,
           });
         await session.commitTransaction();
+        console.log("NOTIFICANDO CAMBIOS");
         this.io.emit("serverChanged");
         if (this.onInsertLocalAfter != null) {
           try {
@@ -238,7 +239,7 @@ class DatabaseQueue {
 
     const serverDocs = await this.Model.find({
       uuid: { $in: Array.from(docUuidSet) },
-    });
+    }).lean();
     const serverDocsMap = new Map();
     for (const sd of serverDocs) {
       serverDocsMap.set(sd.uuid, sd);
@@ -284,13 +285,12 @@ class DatabaseQueue {
       };
     }
     const syncCode = await this.updateAndGetSyncCode(this.tableName, session);
-
     for (let d of docs) {
       d.syncCode = syncCode;
     }
     await this.Model.bulkWrite(
       docs.map((doc) => {
-        console.log("se va a insertar", doc);
+        // console.log("se va a insertar", doc);
         return {
           updateOne: {
             filter: { uuid: doc.uuid },
@@ -302,9 +302,15 @@ class DatabaseQueue {
       }),
       { session }
     );
+    var finalDocs = [];
+    for (const d of docs) {
+      const serverDoc = serverDocsMap.get(d.uuid);
+      finalDocs.push({ ...serverDoc, ...d });
+    }
     return {
       documentsCreatedLocal: newDocs,
-      documentsUpdates: docs,
+      //devolver documentos actualizados
+      documentsUpdates: finalDocs,
       syncCodeMax: syncCode,
     };
   }
