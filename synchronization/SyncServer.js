@@ -4,7 +4,6 @@ const http = require("http");
 const mongoose = require("mongoose");
 const SyncMetadata = require("./SyncMetadata");
 const LightQueue = require("./LightQueue");
-const Change = require("./Change");
 const DatabaseQueue = require("./DatabaseQueue");
 const ServerData = require("./ServerData");
 const { inspect } = require("util");
@@ -46,23 +45,6 @@ class SyncServer {
     this.app.set("view engine", "html");
     this.app.engine("html", require("ejs").renderFile);
     this.router(this.app, this.auth);
-
-    this.app.post(
-      "/change/list/unprocessed/delete",
-      async (req, res, next) => {
-        await this.auth(req, res, next, req.body.tableName, "write");
-      },
-      async (req, res) => {
-        const tempCodes = req.body["tempCodes"];
-        console.log("SE ELIMINARA LOS TEMP CODE => " + tempCodes);
-        await Change.deleteMany({
-          tableName: req.body.tableName,
-          tempCode: { $in: tempCodes },
-        });
-
-        res.json({ status: "ok" });
-      }
-    );
     this.app.post(
       "/verify",
       async (req, res, next) => {
@@ -101,13 +83,8 @@ class SyncServer {
           ])
         );
         const serverData = await ServerData.findOne();
-
-        const unprocessedChanges = await Change.find({
-          tempCode: { $lte: serverData.processedTempCode },
-        }).lean();
         res.json({
           syncTable: syncMetadataMap,
-          unprocessedChanges,
           serverData,
         });
       }
@@ -242,7 +219,10 @@ class SyncServer {
     await ServerData.findOneAndUpdate(
       { uuid: "momo" },
       {
-        $set: { syncCode: syncCodeMax },
+        $set: {
+          syncCode: syncCodeMax,
+          $restartCounterUpdatedAt: new Date().getTime(),
+        },
         $inc: { restartCounter: 1 },
       },
       {
@@ -253,34 +233,12 @@ class SyncServer {
       }
     );
 
-    const tempCode = await this.updateAndGetTempCode();
-    await this.updateProcessedTempCode(tempCode);
     if (exec != null) {
       await exec();
     }
     this.server.listen(this.port, () => {
       console.log("SERVER ACTIVO: PUERTO USADO :" + this.port);
     });
-  }
-  async updateProcessedTempCode(tempCode) {
-    await ServerData.findOneAndUpdate(
-      {},
-      { processedTempCode: tempCode },
-      { upsert: true, setDefaultsOnInsert: true }
-    );
-  }
-  async updateAndGetTempCode() {
-    const serverData = await ServerData.findOneAndUpdate(
-      {},
-      {
-        $inc: {
-          tempCodeMax: 1,
-        },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    return serverData.tempCodeMax;
   }
   async getCurrentSyncCode(tableName) {
     let syncCodeTable = await SyncMetadata.findOne({ tableName });

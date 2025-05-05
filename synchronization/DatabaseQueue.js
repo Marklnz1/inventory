@@ -4,7 +4,6 @@ const ServerData = require("./ServerData");
 const SyncMetadata = require("./SyncMetadata");
 const { inspect } = require("util");
 const DocumentInsertResponse = require("./DocumentInsertResponse");
-const Change = require("./Change");
 const { v7: uuidv7 } = require("uuid");
 
 class DatabaseQueue {
@@ -17,13 +16,7 @@ class DatabaseQueue {
 
     this.lightQueue = new LightQueue();
   }
-  async updateProcessedTempCode(tempCode) {
-    await ServerData.findOneAndUpdate(
-      {},
-      { processedTempCode: tempCode },
-      { upsert: true, setDefaultsOnInsert: true }
-    );
-  }
+
   async addTaskDataInQueue({ res, docs }) {
     const task = async () => {
       const session = await mongoose.startSession();
